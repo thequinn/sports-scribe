@@ -8,8 +8,8 @@ import logging
 from typing import Any
 
 from dotenv import load_dotenv
-from pydantic import Field, validator
-from pydantic_settings import BaseSettings
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,12 +21,12 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables with validation."""
 
     # Required settings
-    openai_api_key: str = Field(..., min_length=20, description="OpenAI API key")
-    supabase_url: str = Field(..., description="Supabase project URL")
-    supabase_service_role_key: str = Field(
+    OPENAI_API_KEY: str = Field(..., min_length=20, description="OpenAI API key")
+    SUPABASE_URL: str = Field(..., description="Supabase project URL")
+    SUPABASE_SERVICE_ROLE_KEY: str = Field(
         ..., min_length=20, description="Supabase service role key"
     )
-    rapidapi_key: str = Field(
+    RAPIDAPI_KEY: str = Field(
         ..., min_length=10, description="RapidAPI key for API-Football"
     )
 
@@ -56,39 +56,44 @@ class Settings(BaseSettings):
         description="API-Football base URL",
     )
 
-    @validator("openai_api_key")
-    def validate_openai_key(cls, v: str) -> str:  # noqa: N805
+    @field_validator("OPENAI_API_KEY")
+    @classmethod
+    def validate_openai_key(cls, v: str) -> str:
         if not v or v == "your-openai-api-key" or v == "sk-...":
             raise ValueError("Valid OpenAI API key is required")
         if not v.startswith("sk-"):
             raise ValueError('OpenAI API key must start with "sk-"')
         return v
 
-    @validator("supabase_url")
-    def validate_supabase_url(cls, v: str) -> str:  # noqa: N805
+    @field_validator("SUPABASE_URL")
+    @classmethod
+    def validate_supabase_url(cls, v: str) -> str:
         if not v.startswith("https://"):
             raise ValueError("Supabase URL must be a valid HTTPS URL")
         if not v.endswith(".supabase.co"):
             raise ValueError("Supabase URL must end with .supabase.co")
         return v
 
-    @validator("environment")
-    def validate_environment(cls, v: str) -> str:  # noqa: N805
+    @field_validator("environment")
+    @classmethod
+    def validate_environment(cls, v: str) -> str:
         allowed = ["development", "staging", "production"]
         if v not in allowed:
             raise ValueError(f"Environment must be one of: {allowed}")
         return v
 
-    @validator("log_level")
-    def validate_log_level(cls, v: str) -> str:  # noqa: N805
+    @field_validator("log_level")
+    @classmethod
+    def validate_log_level(cls, v: str) -> str:
         allowed = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         v_upper = v.upper()
         if v_upper not in allowed:
             raise ValueError(f"Log level must be one of: {allowed}")
         return v_upper
 
-    @validator("log_format")
-    def validate_log_format(cls, v: str) -> str:  # noqa: N805
+    @field_validator("log_format")
+    @classmethod
+    def validate_log_format(cls, v: str) -> str:
         allowed = ["json", "text"]
         if v not in allowed:
             raise ValueError(f"Log format must be one of: {allowed}")
@@ -110,13 +115,9 @@ class Settings(BaseSettings):
             "api_football_base_url": self.api_football_base_url,
         }
 
-    class Config:
-        """Pydantic configuration for Settings model."""
-
-        env_file = ".env"
-        case_sensitive = True
-        # Allow extra fields for forward compatibility
-        extra = "ignore"
+    model_config = SettingsConfigDict(
+        env_file=".env", case_sensitive=True, extra="ignore"
+    )
 
 
 # Global settings instance
