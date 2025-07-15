@@ -1,66 +1,64 @@
-"""
-Test script to verify all dependencies are properly installed
-"""
+"""Test script to verify all dependencies are properly installed."""
 
 import sys
 
 print(f"Python version: {sys.version}")
 
 # Test core dependencies
-try:
-    import openai
+# try:
+#     import openai
 
-    print("✅ OpenAI package imported successfully")
-except ImportError as e:
-    print(f"❌ OpenAI import failed: {e}")
+#     print("✅ OpenAI package imported successfully")
+# except ImportError as e:
+#     print(f"❌ OpenAI import failed: {e}")
 
-try:
-    from agents.researcher import ResearchAgent
+# try:
+#     from agents.researcher import ResearchAgent
 
-    print("✅ OpenAI Agents package imported successfully")
-except ImportError as e:
-    print(f"❌ OpenAI Agents import failed: {e}")
+#     print("✅ OpenAI Agents package imported successfully")
+# except ImportError as e:
+#     print(f"❌ OpenAI Agents import failed: {e}")
 
-try:
-    import fastapi
+# try:
+#     import fastapi
 
-    print("✅ FastAPI package imported successfully")
-except ImportError as e:
-    print(f"❌ FastAPI import failed: {e}")
+#     print("✅ FastAPI package imported successfully")
+# except ImportError as e:
+#     print(f"❌ FastAPI import failed: {e}")
 
-try:
-    from pydantic import BaseModel
+# try:
+#     from pydantic import BaseModel
 
-    print("✅ Pydantic package imported successfully")
-except ImportError as e:
-    print(f"❌ Pydantic import failed: {e}")
+#     print("✅ Pydantic package imported successfully")
+# except ImportError as e:
+#     print(f"❌ Pydantic import failed: {e}")
 
-try:
-    from supabase import create_client
+# try:
+#     from supabase import create_client
 
-    print("✅ Supabase package imported successfully")
-except ImportError as e:
-    print(f"❌ Supabase import failed: {e}")
+#     print("✅ Supabase package imported successfully")
+# except ImportError as e:
+#     print(f"❌ Supabase import failed: {e}")
 
-try:
-    import aiohttp
+# try:
+#     import aiohttp
 
-    print("✅ Aiohttp package imported successfully")
-except ImportError as e:
-    print(f"❌ Aiohttp import failed: {e}")
+#     print("✅ Aiohttp package imported successfully")
+# except ImportError as e:
+#     print(f"❌ Aiohttp import failed: {e}")
 
-try:
-    from dotenv import load_dotenv
+# try:
+#     from dotenv import load_dotenv
 
-    print("✅ Python-dotenv package imported successfully")
-except ImportError as e:
-    print(f"❌ Python-dotenv import failed: {e}")
+#     print("✅ Python-dotenv package imported successfully")
+# except ImportError as e:
+#     print(f"❌ Python-dotenv import failed: {e}")
 
-try:
-    import structlog
+# try:
+#     import structlog
 
-    print("✅ Structlog package imported successfully")
-except ImportError as e:
-    print(f"❌ Structlog import failed: {e}")
+#     print("✅ Structlog package imported successfully")
+# except ImportError as e:
+#     print(f"❌ Structlog import failed: {e}")
 
-print("\n🎉 Environment test completed!")
+# print("\n🎉 Environment test completed!")

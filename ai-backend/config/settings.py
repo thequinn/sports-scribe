@@ -8,8 +8,8 @@ import logging
 from typing import Any
 
 from dotenv import load_dotenv
-from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 
 # Load environment variables from .env file
 load_dotenv()
@@ -56,44 +56,39 @@ class Settings(BaseSettings):
         description="API-Football base URL",
     )
 
-    @field_validator("OPENAI_API_KEY")
-    @classmethod
-    def validate_openai_key(cls, v: str) -> str:
+    @validator("OPENAI_API_KEY")
+    def validate_openai_key(cls, v: str) -> str:  # noqa: N805
         if not v or v == "your-openai-api-key" or v == "sk-...":
             raise ValueError("Valid OpenAI API key is required")
         if not v.startswith("sk-"):
             raise ValueError('OpenAI API key must start with "sk-"')
         return v
 
-    @field_validator("SUPABASE_URL")
-    @classmethod
-    def validate_supabase_url(cls, v: str) -> str:
+    @validator("SUPABASE_URL")
+    def validate_supabase_url(cls, v: str) -> str:  # noqa: N805
         if not v.startswith("https://"):
             raise ValueError("Supabase URL must be a valid HTTPS URL")
         if not v.endswith(".supabase.co"):
             raise ValueError("Supabase URL must end with .supabase.co")
         return v
 
-    @field_validator("environment")
-    @classmethod
-    def validate_environment(cls, v: str) -> str:
+    @validator("environment")
+    def validate_environment(cls, v: str) -> str:  # noqa: N805
         allowed = ["development", "staging", "production"]
         if v not in allowed:
             raise ValueError(f"Environment must be one of: {allowed}")
         return v
 
-    @field_validator("log_level")
-    @classmethod
-    def validate_log_level(cls, v: str) -> str:
+    @validator("log_level")
+    def validate_log_level(cls, v: str) -> str:  # noqa: N805
         allowed = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         v_upper = v.upper()
         if v_upper not in allowed:
             raise ValueError(f"Log level must be one of: {allowed}")
         return v_upper
 
-    @field_validator("log_format")
-    @classmethod
-    def validate_log_format(cls, v: str) -> str:
+    @validator("log_format")
+    def validate_log_format(cls, v: str) -> str:  # noqa: N805
         allowed = ["json", "text"]
         if v not in allowed:
             raise ValueError(f"Log format must be one of: {allowed}")
@@ -115,9 +110,13 @@ class Settings(BaseSettings):
             "api_football_base_url": self.api_football_base_url,
         }
 
-    model_config = SettingsConfigDict(
-        env_file=".env", case_sensitive=True, extra="ignore"
-    )
+    class Config:
+        """Pydantic configuration for Settings model."""
+
+        env_file = ".env"
+        case_sensitive = True
+        # Allow extra fields for forward compatibility
+        extra = "ignore"
 
 
 # Global settings instance
