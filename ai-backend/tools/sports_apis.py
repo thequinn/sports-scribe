@@ -10,9 +10,13 @@ import os
 from typing import Any
 
 import aiohttp
+from dotenv import load_dotenv
 
 from utils.security import sanitize_log_input, sanitize_multiple_log_inputs
 
+load_dotenv()
+
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -27,10 +31,15 @@ class APIFootballClient:
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.getenv("RAPIDAPI_KEY")
         self.base_url = "https://api-football-v1.p.rapidapi.com/v3"
-        self.headers = {
-            "X-RapidAPI-Key": self.api_key,
-            "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com",
-        }
+
+        if self.api_key:
+            self.headers = {
+                "X-RapidAPI-Key": self.api_key,
+                "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com",
+            }
+        else:
+            self.headers = {}
+
         self.session: aiohttp.ClientSession | None = None
 
     async def __aenter__(self) -> "APIFootballClient":
@@ -48,27 +57,90 @@ class APIFootballClient:
 
     async def get_fixtures(
         self,
-        league_id: int | None = None,
-        season: int | None = None,
+        fixture_id: int | None = None,
         date: str | None = None,
+        league: int | None = None,
+        team: int | None = None,
+        season: int | None = None,
     ) -> list[dict[str, Any]]:
         """
         Get football fixtures/matches.
 
         Args:
-            league_id: League ID (e.g., 39 for Premier League)
-            season: Season year (e.g., 2024)
-            date: Date in YYYY-MM-DD format
+            fixture_id: ID of the fixture (optional)
+            date: Date in YYYY-MM-DD format (optional)
+            league: League ID (optional)
+            team: Team ID (optional)
+            season: Season year (required if league is provided)
 
         Returns:
             List of fixture data dictionaries
         """
-        # TODO: Implement API-Football fixtures endpoint
-        league_safe, season_safe = sanitize_multiple_log_inputs(league_id, season)
-        logger.info(
-            "Fetching fixtures for league %s, season %s", league_safe, season_safe
-        )
-        return []
+
+        if not self.headers or "X-RapidAPI-Key" not in self.headers:
+            logger.error("Missing RapidAPI key in headers.")
+            return []
+
+        payload = self._build_fixture_payload(fixture_id, date, league, team, season)
+
+        if not payload:
+            logger.warning("get_fixtures called without any parameters.")
+            return []
+
+        url = self.base_url + "/fixtures"
+
+        return await self._fetch_fixtures(url, payload)
+
+    def _build_fixture_payload(
+        self,
+        fixture_id: int | None,
+        date: str | None,
+        league: int | None,
+        team: int | None,
+        season: int | None,
+    ) -> dict[str, Any]:
+        """Builds the payload for the fixture request."""
+        payload = {}
+        if fixture_id is not None:
+            payload["id"] = sanitize_log_input(fixture_id)
+        if date is not None:
+            payload["date"] = sanitize_log_input(date)
+        if league is not None:
+            if season is None:
+                logger.error("Season must be provided when filtering by league.")
+                return {}  # Return empty dict to indicate failure
+            payload["league"] = sanitize_log_input(league)
+            payload["season"] = sanitize_log_input(season)
+        if team is not None:
+            payload["team"] = sanitize_log_input(team)
+        return payload
+
+    async def _fetch_fixtures(
+        self, url: str, payload: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Fetches fixtures from the API."""
+        try:
+            if self.session is None:
+                self.session = aiohttp.ClientSession()
+
+            async with self.session.get(
+                url, headers=self.headers, params=payload
+            ) as response:
+                logger.info(
+                    f"Requesting fixtures with params: {payload}. Status: {response.status}"
+                )
+
+                response.raise_for_status()
+
+                data = await response.json()
+                data_response = data.get("response", [])
+                if not isinstance(data_response, list):
+                    data_response = []
+                return data_response
+
+        except aiohttp.ClientError as e:
+            logger.error(f"An error occurred while calling API-Football: {e}")
+            return []
 
     async def get_teams(self, league_id: int, season: int) -> list[dict[str, Any]]:
         """
