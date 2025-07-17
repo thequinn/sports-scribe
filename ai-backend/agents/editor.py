@@ -34,9 +34,7 @@ class EditorAgent:
         logger.info("Reviewing article content")
         return article_content, {}
 
-    async def fact_check(
-        self, article_content: str, source_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def fact_check(self, article_content: str, source_data: dict[str, Any]) -> dict[str, Any]:
         """Fact-check article content against source data.
 
         Args:

@@ -26,9 +26,7 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str = Field(
         ..., min_length=20, description="Supabase service role key"
     )
-    RAPIDAPI_KEY: str = Field(
-        ..., min_length=10, description="RapidAPI key for API-Football"
-    )
+    RAPIDAPI_KEY: str = Field(..., min_length=10, description="RapidAPI key for API-Football")
 
     # OpenAI Configuration
     openai_model: str = Field(default="gpt-4-turbo", description="OpenAI model to use")
@@ -40,9 +38,7 @@ class Settings(BaseSettings):
 
     # Chainlit Configuration
     chainlit_host: str = Field(default="127.0.0.1", description="Chainlit host")
-    chainlit_port: int = Field(
-        default=8001, ge=1, le=65535, description="Chainlit port"
-    )
+    chainlit_port: int = Field(default=8001, ge=1, le=65535, description="Chainlit port")
 
     # Environment Configuration
     environment: str = Field(default="development", description="Environment name")
@@ -115,9 +111,7 @@ class Settings(BaseSettings):
             "api_football_base_url": self.api_football_base_url,
         }
 
-    model_config = SettingsConfigDict(
-        env_file=".env", case_sensitive=True, extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
 
 # Global settings instance
