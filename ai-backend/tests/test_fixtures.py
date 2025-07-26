@@ -128,9 +128,7 @@ async def test_get_fixtures_by_multiple(monkeypatch):
 
     client = APIFootballClient(api_key="test")
     client.session = MockSession()
-    result = await client.get_fixtures(
-        league=39, season=2025, date="2025-07-10", team=100
-    )
+    result = await client.get_fixtures(league=39, season=2025, date="2025-07-10", team=100)
     assert isinstance(result, list)
     assert result[0]["league"] == 39
     assert result[0]["date"] == "2025-07-10"

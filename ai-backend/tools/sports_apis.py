@@ -5,6 +5,7 @@ This module provides interface for API-Football from RapidAPI.
 Focus: Football (Soccer) only for MVP.
 """
 
+import json
 import logging
 import os
 from typing import Any
@@ -81,17 +82,17 @@ class APIFootballClient:
             logger.error("Missing RapidAPI key in headers.")
             return []
 
-        payload = self._build_fixture_payload(fixture_id, date, league, team, season)
+        payload = self._build_payload(fixture_id, date, league, team, season)
 
         if not payload:
-            logger.warning("get_fixtures called without any parameters.")
+            logger.warning("_build_payload called without any parameters.")
             return []
 
         url = self.base_url + "/fixtures"
 
         return await self._fetch_fixtures(url, payload)
 
-    def _build_fixture_payload(
+    def _build_payload(
         self,
         fixture_id: int | None,
         date: str | None,
@@ -107,25 +108,23 @@ class APIFootballClient:
             payload["date"] = sanitize_log_input(date)
         if league is not None:
             if season is None:
-                logger.error("Season must be provided when filtering by league.")
+                logger.error("Season must be provided when filtering by league")
                 return {}  # Return empty dict to indicate failure
+
+            # API-Football specific params is called league, not league_id
             payload["league"] = sanitize_log_input(league)
             payload["season"] = sanitize_log_input(season)
         if team is not None:
             payload["team"] = sanitize_log_input(team)
         return payload
 
-    async def _fetch_fixtures(
-        self, url: str, payload: dict[str, Any]
-    ) -> list[dict[str, Any]]:
+    async def _fetch_fixtures(self, url: str, payload: dict[str, Any]) -> list[dict[str, Any]]:
         """Fetches fixtures from the API."""
         try:
             if self.session is None:
                 self.session = aiohttp.ClientSession()
 
-            async with self.session.get(
-                url, headers=self.headers, params=payload
-            ) as response:
+            async with self.session.get(url, headers=self.headers, params=payload) as response:
                 logger.info(
                     f"Requesting fixtures with params: {payload}. Status: {response.status}"
                 )
@@ -153,10 +152,50 @@ class APIFootballClient:
         Returns:
             List of team data dictionaries
         """
-        # TODO: Implement API-Football teams endpoint
-        league_safe, season_safe = sanitize_multiple_log_inputs(league_id, season)
-        logger.info("Fetching teams for league %s, season %s", league_safe, season_safe)
-        return []
+        league_id_safe, season_safe = sanitize_multiple_log_inputs(league_id, season)
+
+        payload = self._build_payload(
+            fixture_id=None,
+            date=None,
+            # API-Football specific params is called league, not league_id
+            league=league_id_safe,
+            team=None,
+            season=season_safe,
+        )
+        if not payload:
+            logger.warning("_build_payload called without any parameters.")
+            return []
+
+        url = self.base_url + "/teams"
+
+        logger.info("Fetching teams for league %s, season %s", league_id_safe, season_safe)
+
+        return await self._fetch_teams(url, payload)
+
+    async def _fetch_teams(self, url: str, payload: dict[str, Any]) -> list[dict[str, Any]]:
+        """Fetches teams from the API."""
+        try:
+            if self.session is None:
+                self.session = aiohttp.ClientSession()
+
+            async with self.session.get(url, headers=self.headers, params=payload) as response:
+                logger.info(f"Requesting teams with params:{payload}. Status:{response.status}")
+                response.raise_for_status()
+
+                data = await response.json()
+                data_response = data.get("response", [])
+
+                if not isinstance(data_response, list):
+                    data_response = []
+                    logger.warning("API-Football did not return a list of teams.")
+                    logger.warning(f"Instead, it returned: {data}")
+                logger.info(f"Teams data: {json.dumps(data_response, indent=2)}")
+
+                return data_response
+
+        except aiohttp.ClientError as e:
+            logger.error(f"An error occurred while calling API-Football: {e}")
+            return []
 
     async def get_league_standings(self, league_id: int, season: int) -> dict[str, Any]:
         """
@@ -171,9 +210,7 @@ class APIFootballClient:
         """
         # TODO: Implement API-Football standings endpoint
         league_safe, season_safe = sanitize_multiple_log_inputs(league_id, season)
-        logger.info(
-            "Fetching standings for league %s, season %s", league_safe, season_safe
-        )
+        logger.info("Fetching standings for league %s, season %s", league_safe, season_safe)
         return {}
 
     async def get_match_statistics(self, fixture_id: int) -> dict[str, Any]:
@@ -187,9 +224,7 @@ class APIFootballClient:
             Dictionary containing match statistics
         """
         # TODO: Implement API-Football match statistics endpoint
-        logger.info(
-            "Fetching match statistics for fixture %s", sanitize_log_input(fixture_id)
-        )
+        logger.info("Fetching match statistics for fixture %s", sanitize_log_input(fixture_id))
         return {}
 
     async def get_players(self, team_id: int, season: int) -> list[dict[str, Any]]:
@@ -220,3 +255,20 @@ FOOTBALL_LEAGUES = {
     "europa_league": 3,
     "world_cup": 1,
 }
+
+
+# async def main():
+#     async with APIFootballClient() as client:
+# logger.info("Testing get_fixtures()")
+# result = await client.get_fixtures(league=39, season=2023)
+# json_string = json.dumps(result, indent=2)
+# print(f"get_fixtures() test result: {json_string}")
+
+# logger.info("Testing get_teams()")
+# result = await client.get_teams(league_id=39, season=2023)
+# json_string = json.dumps(result, indent=2)
+# print(f"get_teams() test result: {json_string}")
+
+
+# if __name__ == "__main__":
+#     asyncio.run(main())
