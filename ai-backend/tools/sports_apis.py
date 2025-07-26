@@ -133,6 +133,7 @@ class APIFootballClient:
                 response.raise_for_status()
 
                 data = await response.json()
+
                 data_response = data.get("response", [])
                 if not isinstance(data_response, list):
                     data_response = []

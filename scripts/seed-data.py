@@ -11,11 +11,11 @@ from datetime import datetime, timedelta
 from typing import Dict, List
 
 # Add the shared directory to the Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "shared"))
 
 try:
-    from supabase import create_client, Client
     import structlog
+    from supabase import Client, create_client
 except ImportError:
     print("❌ Required packages not installed. Run: pip install supabase structlog")
     sys.exit(1)
@@ -25,12 +25,37 @@ logger = structlog.get_logger()
 
 # Sample data
 SAMPLE_TEAMS = [
-    {"name": "Manchester United", "city": "Manchester", "sport": "football", "league": "Premier League"},
-    {"name": "Manchester City", "city": "Manchester", "sport": "football", "league": "Premier League"},
-    {"name": "Liverpool", "city": "Liverpool", "sport": "football", "league": "Premier League"},
-    {"name": "Arsenal", "city": "London", "sport": "football", "league": "Premier League"},
+    {
+        "name": "Manchester United",
+        "city": "Manchester",
+        "sport": "football",
+        "league": "Premier League",
+    },
+    {
+        "name": "Manchester City",
+        "city": "Manchester",
+        "sport": "football",
+        "league": "Premier League",
+    },
+    {
+        "name": "Liverpool",
+        "city": "Liverpool",
+        "sport": "football",
+        "league": "Premier League",
+    },
+    {
+        "name": "Arsenal",
+        "city": "London",
+        "sport": "football",
+        "league": "Premier League",
+    },
     {"name": "Real Madrid", "city": "Madrid", "sport": "football", "league": "La Liga"},
-    {"name": "Barcelona", "city": "Barcelona", "sport": "football", "league": "La Liga"},
+    {
+        "name": "Barcelona",
+        "city": "Barcelona",
+        "sport": "football",
+        "league": "La Liga",
+    },
 ]
 
 SAMPLE_PLAYERS = [
@@ -52,7 +77,7 @@ SAMPLE_GAMES = [
         "home_score": 2,
         "away_score": 1,
         "status": "completed",
-        "venue": "Old Trafford"
+        "venue": "Old Trafford",
     },
     {
         "home_team_id": 3,
@@ -61,7 +86,7 @@ SAMPLE_GAMES = [
         "home_score": None,
         "away_score": None,
         "status": "scheduled",
-        "venue": "Anfield"
+        "venue": "Anfield",
     },
     {
         "home_team_id": 5,
@@ -70,7 +95,7 @@ SAMPLE_GAMES = [
         "home_score": None,
         "away_score": None,
         "status": "scheduled",
-        "venue": "Santiago Bernabéu"
+        "venue": "Santiago Bernabéu",
     },
 ]
 
@@ -81,9 +106,15 @@ SAMPLE_ARTICLES = [
         "summary": "Manchester United beat Manchester City 2-1 in thrilling Manchester Derby",
         "author": "AI Sports Writer",
         "status": "published",
-        "tags": ["football", "Premier League", "Manchester United", "Manchester City", "Derby"],
+        "tags": [
+            "football",
+            "Premier League",
+            "Manchester United",
+            "Manchester City",
+            "Derby",
+        ],
         "game_id": 1,
-        "ai_confidence": 0.95
+        "ai_confidence": 0.95,
     },
     {
         "title": "Liverpool vs Arsenal: Anfield Awaits Crucial Premier League Clash",
@@ -93,8 +124,8 @@ SAMPLE_ARTICLES = [
         "status": "published",
         "tags": ["football", "Premier League", "Liverpool", "Arsenal", "Preview"],
         "game_id": 2,
-        "ai_confidence": 0.88
-    }
+        "ai_confidence": 0.88,
+    },
 ]
 
 
@@ -105,7 +136,9 @@ class DatabaseSeeder:
         self.supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
         if not self.supabase_url or not self.supabase_key:
-            logger.error("Missing Supabase credentials. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY")
+            logger.error(
+                "Missing Supabase credentials. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"
+            )
             sys.exit(1)
 
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
@@ -216,7 +249,13 @@ class DatabaseSeeder:
             articles = self.seed_articles(games)
 
             logger.info("✅ Database seeding complete!")
-            logger.info("Created: %d teams, %d players, %d games, %d articles", len(teams), len(players), len(games), len(articles))
+            logger.info(
+                "Created: %d teams, %d players, %d games, %d articles",
+                len(teams),
+                len(players),
+                len(games),
+                len(articles),
+            )
 
         except Exception as e:
             logger.error(f"❌ Seeding failed: {e}")
@@ -228,7 +267,9 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Seed Sport Scribe database")
-    parser.add_argument("--clear", action="store_true", help="Clear existing data first")
+    parser.add_argument(
+        "--clear", action="store_true", help="Clear existing data first"
+    )
     args = parser.parse_args()
 
     seeder = DatabaseSeeder()
