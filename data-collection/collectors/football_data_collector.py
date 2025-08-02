@@ -18,6 +18,7 @@ https://realityai.notion.site/Sports-Scribe-21c456247e0a802085faccfd667558a0
 """
 
 import os
+from datetime import datetime
 import requests
 import pandas as pd
 
@@ -41,15 +42,27 @@ Field mapping between our schema and the CSV fields:
 def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Rename columns to match our schema."""
     column_mapping = {
+        # "tmp": "match_id",
+        "Date": "date",
         # TODO: Map to correct league name
         "Div": "league",
-        "Date": "season",
+        # "Date": "season",
         "HomeTeam": "home_team",
         "AwayTeam": "away_team",
         "FTHG": "home_score",
         "FTAG": "away_score",
     }
     return df.rename(columns=column_mapping)
+
+
+def normalize_date(date_str):
+    """Normalize date format to YYYY-MM-DD."""
+    # for date_str in df["Date"]:
+    #   break
+    # Parse the original format
+    # parsed_date = datetime.strptime(date_str, "%d/%m/%Y")
+    # Format to desired output
+    # return parsed_date.strftime("%Y-%m-%d")
 
 
 def read_and_concat_csvs():
@@ -71,7 +84,7 @@ def read_and_concat_csvs():
     csv_files = [f for f in os.listdir(data_folder) if f.endswith(".csv")]
     # print(csv_files)
 
-    # Read each CSV into a DataFrame and store them in a dictionary
+    # Read each CSV into a DataFramea, clean it and store the cleaned data to a new .csv file.
     dataframes = {}
     for file in csv_files:
         path = os.path.join(data_folder, file)
@@ -87,16 +100,17 @@ def read_and_concat_csvs():
         # for col_name, col_data in df.items():
         #     print("\n[", col_name, "]:", col_data)
 
-        # Store the DataFrame in the dictionary => Maybe for later use
-        # dataframes[file] = df
-
         df["match_id"] = df.index
+        # Extract season from filename, E0_2024.csv => 2024
+        df["season"] = file.split("_")[1].split(".")[0]
+        # print("df[season]:", df["season"])
         df["source"] = "football-data.co.uk"
 
         # Drop all columns except for the essential fields
         df_clean = df[
             [
                 "match_id",
+                "date",
                 "league",
                 "season",
                 "home_team",
@@ -110,6 +124,8 @@ def read_and_concat_csvs():
         print(df_clean.head())
 
         # TODO: Normalize date format to YYYY-MM-DD
+        # normalized = normalize_date(df_clean)
+        # print(normalized)
 
         # Ensures the folder exists without throwing an error
         os.makedirs("data/processed", exist_ok=True)
@@ -119,11 +135,6 @@ def read_and_concat_csvs():
         output_path = os.path.join("data/processed", output_file)
         print(f"Saving cleaned data to {output_path}")
         df_clean.to_csv(output_path, index=False)
-
-    # Optional: Display the first few rows of each DataFrame
-    # for name, df in dataframes.items():
-    #     print(f"\n--- {name} ---")
-    #     print(df.head())
 
 
 def download_csv(url: str, filename: str = "data.csv", overwrite: bool = False):
@@ -149,7 +160,7 @@ def download_csv(url: str, filename: str = "data.csv", overwrite: bool = False):
 
     Raises:
     - ValueError: If the response status is not 200 (OK).
-    - FileExistsError: If the file exists and overwrite is False.
+    - FileExistsError: If the file exists and overwrite is False
     """
     # Ensure the data/raw directory exists
     os.makedirs("data/raw", exist_ok=True)

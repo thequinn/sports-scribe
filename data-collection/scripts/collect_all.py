@@ -25,7 +25,9 @@ import sys
 import os
 
 # Add the data-collection directory to the Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+data_collection_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# print("data_collection dir:", data_collection_dir)
+sys.path.append(data_collection_dir)
 
 from collectors.football_data_collector import download_csv, read_and_concat_csvs
 
