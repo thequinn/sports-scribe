@@ -19,6 +19,111 @@ https://realityai.notion.site/Sports-Scribe-21c456247e0a802085faccfd667558a0
 
 import os
 import requests
+import pandas as pd
+
+"""
+essential fields: (Must have)
+  - match_id, date, league, season
+  - home_team, away_team
+  - home_score, away_score
+  - source
+
+Field mapping between our schema and the CSV fields:
+  match_id: Referee
+  home_team: HomeTeam
+  away_team: AwayTeam
+  home_score: FTHG
+  away_score: FTAG
+  source: football-data.co.uk
+"""
+
+
+def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Rename columns to match our schema."""
+    column_mapping = {
+        # TODO: Map to correct league name
+        "Div": "league",
+        "Date": "season",
+        "HomeTeam": "home_team",
+        "AwayTeam": "away_team",
+        "FTHG": "home_score",
+        "FTAG": "away_score",
+    }
+    return df.rename(columns=column_mapping)
+
+
+def read_and_concat_csvs():
+    # Get the cur script dir for .py
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    #
+    # Get the cur script dir for .ipynb
+    # cur_dir = os.getcwd()
+
+    # Navigate to the data/raw folder relative to the project structure
+    data_folder = os.path.join(cur_dir, "..", "data", "raw")
+    # print("Before normpath:", data_folder)
+
+    # Alternative: Use os.path.normpath to clean up the path
+    data_folder = os.path.normpath(data_folder)
+    # print("After normpath:", data_folder)
+
+    # Get all CSV files in the data folder
+    csv_files = [f for f in os.listdir(data_folder) if f.endswith(".csv")]
+    # print(csv_files)
+
+    # Read each CSV into a DataFrame and store them in a dictionary
+    dataframes = {}
+    for file in csv_files:
+        path = os.path.join(data_folder, file)
+        print("file:", file)
+        print(f"path: {path}")
+
+        # Rename columns to match our schema
+        df = pd.read_csv(path)
+        df = rename_columns(df)
+        print(df.head())
+
+        # Print all column names and data
+        # for col_name, col_data in df.items():
+        #     print("\n[", col_name, "]:", col_data)
+
+        # Store the DataFrame in the dictionary => Maybe for later use
+        # dataframes[file] = df
+
+        df["match_id"] = df.index
+        df["source"] = "football-data.co.uk"
+
+        # Drop all columns except for the essential fields
+        df_clean = df[
+            [
+                "match_id",
+                "league",
+                "season",
+                "home_team",
+                "away_team",
+                "home_score",
+                "away_score",
+                "source",
+            ]
+        ]
+        print("After dropping columns:")
+        print(df_clean.head())
+
+        # TODO: Normalize date format to YYYY-MM-DD
+
+        # Ensures the folder exists without throwing an error
+        os.makedirs("data/processed", exist_ok=True)
+
+        # Write the cleaned DataFrame to a new CSV file
+        output_file = file.replace(".csv", "") + "_cleaned.csv"
+        output_path = os.path.join("data/processed", output_file)
+        print(f"Saving cleaned data to {output_path}")
+        df_clean.to_csv(output_path, index=False)
+
+    # Optional: Display the first few rows of each DataFrame
+    # for name, df in dataframes.items():
+    #     print(f"\n--- {name} ---")
+    #     print(df.head())
 
 
 def download_csv(url: str, filename: str = "data.csv", overwrite: bool = False):

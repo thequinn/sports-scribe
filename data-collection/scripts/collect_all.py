@@ -27,11 +27,18 @@ import os
 # Add the data-collection directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from collectors.football_data_collector import download_csv
+from collectors.football_data_collector import download_csv, read_and_concat_csvs
 
 if __name__ == "__main__":
-    leagues = ["E0", "E1", "E2", "E3"]  # Premier League and lower divisions
-    seasons = [2024, 2023, 2022, 2021, 2020]  # Last 5 seasons
+    # leagues = ["E0", "E1", "E2", "E3"]  # Premier League and lower divisions
+    # seasons = [2024, 2023, 2022, 2021, 2020]  # Last 5 seasons
+    #
+    """
+    For testing purposes, only download 1 season and 1 league
+    """
+    """
+    leagues = ["E0"]  # Premier League and lower divisions
+    seasons = [2024]
 
     for league in leagues:
         for season in seasons:
@@ -40,3 +47,6 @@ if __name__ == "__main__":
             url = f"{base_url}/{season_code}/{league}.csv"
             new_filename = f"{league}_{season}.csv"
             download_csv(url, new_filename, overwrite=True)
+    print("Data saved in data-collection/data/raw/")
+    """
+    read_and_concat_csvs()
