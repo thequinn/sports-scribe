@@ -68,42 +68,28 @@ def normalize_date(date_str):
 def read_and_concat_csvs():
     # Get the cur script dir for .py
     cur_dir = os.path.dirname(os.path.abspath(__file__))
-    #
-    # Get the cur script dir for .ipynb
-    # cur_dir = os.getcwd()
 
-    # Navigate to the data/raw folder relative to the project structure
-    data_folder = os.path.join(cur_dir, "..", "data", "raw")
-    # print("Before normpath:", data_folder)
+    # Navigate to the data/raw, and clean up the path
+    data_raw_folder = os.path.join(cur_dir, "..", "data", "raw")
+    data_raw_folder = os.path.normpath(data_raw_folder)
 
-    # Alternative: Use os.path.normpath to clean up the path
-    data_folder = os.path.normpath(data_folder)
-    # print("After normpath:", data_folder)
-
-    # Get all CSV files in the data folder
-    csv_files = [f for f in os.listdir(data_folder) if f.endswith(".csv")]
+    # Get all CSV files in the data/raw folder
+    csv_files = [f for f in os.listdir(data_raw_folder) if f.endswith(".csv")]
     # print(csv_files)
 
     # Read each CSV into a DataFramea, clean it and store the cleaned data to a new .csv file.
-    dataframes = {}
     for file in csv_files:
-        path = os.path.join(data_folder, file)
-        print("file:", file)
+        path = os.path.join(data_raw_folder, file)
         print(f"path: {path}")
 
-        # Rename columns to match our schema
         df = pd.read_csv(path)
-        df = rename_columns(df)
-        print(df.head())
 
-        # Print all column names and data
-        # for col_name, col_data in df.items():
-        #     print("\n[", col_name, "]:", col_data)
+        # Rename columns to match our schema
+        df = rename_columns(df)
 
         df["match_id"] = df.index
         # Extract season from filename, E0_2024.csv => 2024
         df["season"] = file.split("_")[1].split(".")[0]
-        # print("df[season]:", df["season"])
         df["source"] = "football-data.co.uk"
 
         # Drop all columns except for the essential fields
@@ -128,13 +114,19 @@ def read_and_concat_csvs():
         # print(normalized)
 
         # Ensures the folder exists without throwing an error
-        os.makedirs("data/processed", exist_ok=True)
+        # os.makedirs("data/processed", exist_ok=True)
 
         # Write the cleaned DataFrame to a new CSV file
         output_file = file.replace(".csv", "") + "_cleaned.csv"
-        output_path = os.path.join("data/processed", output_file)
-        print(f"Saving cleaned data to {output_path}")
+
+        # Navigate to the data/processed, and clean up the path
+        data_processed_folder = os.path.join(cur_dir, "..", "data", "processed")
+        data_processed_folder = os.path.normpath(data_processed_folder)
+
+        output_path = os.path.join(data_processed_folder, output_file)
+
         df_clean.to_csv(output_path, index=False)
+        print(f"Cleaned CSV saved as '{output_path}'.")
 
 
 def download_csv(url: str, filename: str = "data.csv", overwrite: bool = False):
@@ -162,27 +154,33 @@ def download_csv(url: str, filename: str = "data.csv", overwrite: bool = False):
     - ValueError: If the response status is not 200 (OK).
     - FileExistsError: If the file exists and overwrite is False
     """
-    # Ensure the data/raw directory exists
-    os.makedirs("data/raw", exist_ok=True)
+
+    # Build absolute path to data/raw folder
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    data_raw_folder = os.path.join(cur_dir, "..", "data", "raw")
+
+    # Alternative: Use os.path.normpath to clean up the path
+    data_raw_folder = os.path.normpath(data_raw_folder)
 
     # Build the full filepath
-    filepath = os.path.join("data", "raw", filename)
+    filepath = os.path.join(data_raw_folder, filename)
 
     if not overwrite and os.path.exists(filepath):
         raise FileExistsError(
             f"'{filepath}' already exists. Set overwrite=True to replace it."
         )
 
-    response = requests.get(url)
-
-    if response.status_code != 200:
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise HTTPError for bad responses
+        print("Request successful:", response.status_code)
+    except requests.exceptions:
         raise ValueError(f"Failed to fetch data. Status code: {response.status_code}")
 
     # Write to data/raw/filename
     with open(filepath, "wb") as f:
         f.write(response.content)
-
-    print(f"CSV saved as '{filepath}'.")
+    print(f"Raw CSV saved as '{filepath}'.")
 
 
 """

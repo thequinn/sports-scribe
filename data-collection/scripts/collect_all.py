@@ -38,7 +38,7 @@ if __name__ == "__main__":
     """
     For testing purposes, only download 1 season and 1 league
     """
-    """
+
     leagues = ["E0"]  # Premier League and lower divisions
     seasons = [2024]
 
@@ -49,6 +49,7 @@ if __name__ == "__main__":
             url = f"{base_url}/{season_code}/{league}.csv"
             new_filename = f"{league}_{season}.csv"
             download_csv(url, new_filename, overwrite=True)
-    print("Data saved in data-collection/data/raw/")
-    """
+    print("\n")
+
     read_and_concat_csvs()
+    print("\n")
