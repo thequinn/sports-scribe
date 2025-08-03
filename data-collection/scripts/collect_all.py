@@ -32,15 +32,16 @@ sys.path.append(data_collection_dir)
 from collectors.football_data_collector import download_csv, read_and_concat_csvs
 
 if __name__ == "__main__":
-    # leagues = ["E0", "E1", "E2", "E3"]  # Premier League and lower divisions
+    # Premier League, La Liga League
+    # leagues = ["E0", "SP1"]
     # seasons = [2024, 2023, 2022, 2021, 2020]  # Last 5 seasons
     #
     """
     For testing purposes, only download 1 season and 1 league
     """
 
-    leagues = ["E0"]  # Premier League and lower divisions
-    seasons = [2024]
+    leagues = ["F1"]
+    seasons = [2024, 2023]
 
     for league in leagues:
         for season in seasons:

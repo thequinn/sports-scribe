@@ -173,7 +173,7 @@ def download_csv(url: str, filename: str = "data.csv", overwrite: bool = False):
     try:
         response = requests.get(url)
         response.raise_for_status()  # Raise HTTPError for bad responses
-        print("Request successful:", response.status_code)
+        # print("Request successful:", response.status_code)
     except requests.exceptions:
         raise ValueError(f"Failed to fetch data. Status code: {response.status_code}")
 
