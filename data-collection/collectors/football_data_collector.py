@@ -21,6 +21,7 @@ import os
 from datetime import datetime
 import requests
 import pandas as pd
+from bs4 import BeautifulSoup
 
 """
 essential fields: (Must have)
@@ -42,11 +43,7 @@ Field mapping between our schema and the CSV fields:
 def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Rename columns to match our schema."""
     column_mapping = {
-        # "tmp": "match_id",
         "Date": "date",
-        # TODO: Map to correct league name
-        "Div": "league",
-        # "Date": "season",
         "HomeTeam": "home_team",
         "AwayTeam": "away_team",
         "FTHG": "home_score",
@@ -55,14 +52,10 @@ def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename(columns=column_mapping)
 
 
-def normalize_date(date_str):
-    """Normalize date format to YYYY-MM-DD."""
-    # for date_str in df["Date"]:
-    #   break
-    # Parse the original format
-    # parsed_date = datetime.strptime(date_str, "%d/%m/%Y")
-    # Format to desired output
-    # return parsed_date.strftime("%Y-%m-%d")
+def get_columns(df, *args) -> pd.DataFrame:
+    """Dynamic column selection"""
+    valid_cols = [col for col in args if col in df.columns]
+    return df[valid_cols]
 
 
 def read_and_concat_csvs():
@@ -88,30 +81,26 @@ def read_and_concat_csvs():
         df = rename_columns(df)
 
         df["match_id"] = df.index
+        df["league"] = "Premier League"
         # Extract season from filename, E0_2024.csv => 2024
         df["season"] = file.split("_")[1].split(".")[0]
         df["source"] = "football-data.co.uk"
 
-        # Drop all columns except for the essential fields
-        df_clean = df[
-            [
-                "match_id",
-                "date",
-                "league",
-                "season",
-                "home_team",
-                "away_team",
-                "home_score",
-                "away_score",
-                "source",
-            ]
-        ]
-        print("After dropping columns:")
+        # Get specified columns
+        df_clean = get_columns(
+            df,
+            "match_id",
+            "date",
+            "league",
+            "season",
+            "home_team",
+            "away_team",
+            "home_score",
+            "away_score",
+            "source",
+        )
+        print("After getting essentialcolumns:")
         print(df_clean.head())
-
-        # TODO: Normalize date format to YYYY-MM-DD
-        # normalized = normalize_date(df_clean)
-        # print(normalized)
 
         # Ensures the folder exists without throwing an error
         # os.makedirs("data/processed", exist_ok=True)
