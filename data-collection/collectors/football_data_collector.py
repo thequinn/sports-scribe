@@ -21,7 +21,6 @@ import os
 from datetime import datetime
 import requests
 import pandas as pd
-from bs4 import BeautifulSoup
 
 """
 essential fields: (Must have)
