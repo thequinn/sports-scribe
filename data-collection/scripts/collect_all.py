@@ -23,6 +23,7 @@ E0,16/08/2024,20:00,Man United,Fulham,1,0,H,0,0,D,R Jones,14,10,5,2,12,10,7,8,2,
 
 import sys
 import os
+from bs4 import BeautifulSoup
 
 # Add the data-collection directory to the Python path
 data_collection_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -30,16 +31,42 @@ data_collection_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 sys.path.append(data_collection_dir)
 
 from collectors.football_data_collector import download_csv, read_and_concat_csvs
+from collectors.fbref_collector import (
+    download_with_selenium,
+    generate_request_url,
+    save_html_to_file,
+)
+
+
+def generate_request_url(league_id, league_name, season):
+    """
+    Generate url based on league and season.
+        ex. Premier League 2024-2025
+            "https://fbref.com/en/comps/9/2024-2025/schedule/2024-2025-Premier-League-Scores-and-Fixtures"
+
+        ex. Champions League 2023-2024
+            "https://fbref.com/en/comps/8/2024-2025/schedule/2024-2025-Champions-League-Scores-and-Fixtures"
+
+        ex. La Liga 2023-2024
+            "https://fbref.com/en/comps/12/2023-2024/schedule/2023-2024-La-Liga-Scores-and-Fixtures"
+    """
+    # league_id = 9  # Premier League
+    season_code = f"{str(season)}-{str(season+1)}"
+    # league_name = "Premier-League"  # Premier League
+    endpoint = f"{season_code}-{league_name}-Scores-and-Fixtures"
+
+    url = f"https://fbref.com/en/comps/{league_id}/{season_code}/schedule/{endpoint}"
+
+    return url
+
 
 if __name__ == "__main__":
-    # Premier League, La Liga League
-    # leagues = ["E0", "SP1"]
-    # seasons = [2024, 2023, 2022, 2021, 2020]  # Last 5 seasons
-    #
-    """
-    For testing purposes, only download 1 season and 1 league
-    """
+    # Collecting data from football-data.co.uk
 
+    # Premier League, Champions League (Le Championnat d'Europe), La Liga
+    # leagues = ["E0", "SP1", "F1"]
+    # seasons = [2024, 2023, 2022, 2021, 2020]  # Last 5 seasons
+    """
     leagues = ["F1"]
     seasons = [2024, 2023]
 
@@ -54,3 +81,37 @@ if __name__ == "__main__":
 
     read_and_concat_csvs()
     print("\n")
+    """
+
+    # Collecting data from fbref.com
+    print(
+        "\nfbfre.com has strong bot protection, requests method is not reliable. Using Selenium method only..."
+    )
+    """
+    league_ids = [9, 8, 12]  # Premier League, Champions League, La Liga
+    league_names = ["Premier-League", "Champions-League", "La-Liga"]
+    seasons= [2020, 2021, 2022, 2023, 2024]
+    """
+    league_ids = [8]  # Premier League, Champions League, La Liga
+    league_names = ["Champions-League"]
+    seasons = [2024]
+
+    try:
+        for season in seasons:
+            for league_id, league_name in zip(league_ids, league_names):
+                url = generate_request_url(league_id, league_name, season)
+                print(f"\nGenerated URL: {url}")
+
+                html_content = download_with_selenium(url)
+            print("Success with Selenium method!")
+
+            # Save the HTML content to a file for inspection
+            output_file = f"fbref_{league_name}_{season}_{season+1}.html"
+        save_html_to_file(html_content, output_file)
+
+    except ValueError as selenium_error:
+        print(f"\nSelenium method also failed: {selenium_error}")
+        print("\nBoth methods failed. This site has strong bot protection.")
+
+    # Assuming 'html_content' is the variable holding your downloaded HTML
+    # soup = BeautifulSoup(html_content, "lxml")

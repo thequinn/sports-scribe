@@ -292,43 +292,13 @@ if __name__ == "__main__":
     league_names = ["Premier-League", "Champions-League", "La-Liga"]
     seasons= [2020, 2021, 2022, 2023, 2024]
     """
+    """
     league_ids = [8]  # Premier League, Champions League, La Liga
     league_names = ["Champions-League"]
     seasons = [2024]
-
-    # url = "https://fbref.com/en/comps/9/2024-2025/schedule/2024-2025-Premier-League-Scores-and-Fixtures"
-
-    # print("Attempting to scrape with requests...")
-    # try:
-    #     html_content = download_single_html_page(urls[0])
-    #     print("\nSuccess with requests method!")
-
-    # except ValueError as e:
-    #     print(f"\nRequests method failed: {e}")
-    #     print("\nFalling back to Selenium method...")
-    #     try:
-
-    #         for season in seasons:
-    #             for league_id, league_name in zip(league_ids, league_names):
-    #                 url = generate_request_url(league_id, league_name, season)
-    #                 print(f"\nGenerated URL: {url}")
-
-    #                 html_content = download_with_selenium(url)
-    #             print("Success with Selenium method!")
-
-    #             # Save the HTML content to a file for inspection
-    #             output_file = f"fbref_{league_name}_{season}_{season+1}.html"
-    #         save_html_to_file(html_content, output_file)
-
-    #     except ValueError as selenium_error:
-    #         print(f"\nSelenium method also failed: {selenium_error}")
-    #         print("\nBoth methods failed. This site has strong bot protection.")
-
-    print(
-        "\nfbfre.com has strong bot protection, requests method is not reliable. Using Selenium method only..."
-    )
+    """
+    """
     try:
-
         for season in seasons:
             for league_id, league_name in zip(league_ids, league_names):
                 url = generate_request_url(league_id, league_name, season)
@@ -344,3 +314,4 @@ if __name__ == "__main__":
     except ValueError as selenium_error:
         print(f"\nSelenium method also failed: {selenium_error}")
         print("\nBoth methods failed. This site has strong bot protection.")
+    """
