@@ -34,10 +34,10 @@ from collectors.football_data_collector import download_csv, read_and_concat_csv
 from collectors.fbref_collector import (
     convert_score_to_home_score_and_away_score,
     download_with_selenium,
+    extract_columns,
     fill_columns,
     generate_request_url,
     save_html_to_file,
-    extract_elements,
     create_csv,
 )
 
@@ -57,9 +57,7 @@ data_fields = [
 ]
 
 """
-# Todo: Add later
-
-additional data fields: (Optional)
+# Todo: Add additional data fields: (Optional)
   - referee, attendance, venue
   - half_time_scores
   - basic_statistics (shots, possession)
@@ -111,10 +109,12 @@ if __name__ == "__main__":
     print("\n")
     """
 
+    """
     # Collecting data from fbref.com
     print(
         "\nfbfre.com has strong bot protection, requests method is not reliable. Using Selenium method only..."
     )
+    """
     """
     league_ids = [9, 8, 12]  # Premier League, Champions League, La Liga
     league_names = ["Premier-League", "Champions-League", "La-Liga"]
@@ -144,41 +144,43 @@ if __name__ == "__main__":
     """
 
     # Add code to extract data from the downloaded .html for quick testing purpose
+    # TODO: handle all 5 seasons data
     cur_dir = os.path.dirname((os.path.abspath(__file__)))
 
-    filename = "fbref_Champions-League_2024_2025.html"
+    html_filename = "fbref_Premier-League_2024_2025.html"
     data_raw_folder = os.path.join(cur_dir, "..", "data", "raw")
     data_raw_folder = os.path.normpath(data_raw_folder)
 
-    filepath = os.path.join(data_raw_folder, filename)
-    print("data/raw/filepath:", filepath)
-
-    filename2 = filename.split(".")[0] + ".csv"
-    data_processed_folder = os.path.join(cur_dir, "..", "data", "processed")
-    data_processed_folder = os.path.normpath(data_processed_folder)
-
-    filepath2 = os.path.join(data_processed_folder, filename2)
-    print("data/processes/filepath2:", filepath2)
+    html_filepath = os.path.join(data_raw_folder, html_filename)
+    print("data/raw/html_filepath:", html_filepath)
 
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(html_filepath, "r", encoding="utf-8") as f:
             html_content = f.read()
+            # print("HTML content loaded from file.")
+            # print(f"html_content: {html_content}")
     except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
         print(f"Error reading file: {e}")
-        html_content = ""  # Or handle fallback logic
+        html_content = ""  # Or handle fallback
 
     # Assuming 'html_content' is the variable holding your downloaded HTML
     soup = BeautifulSoup(html_content, "lxml")
 
-    # Scraping/Extracting the essential fields for DB later
-    # Todo: Add additional fields later
+    ##################
+    # Scraping/Extracting the essential fields for DB
+    # extract_elements(soup, data_fields)
+    extract_columns(soup, data_fields, html_filepath)
+    print(".......")
+
+    """
     extracted_data = {}
     for data_field in data_fields:
         print(f"Extracting {data_field}...")
         extracted_data[data_field] = extract_elements(soup, data_field)
         print(f"Extracted {data_field}:")
         print(extracted_data[data_field])
-
+    """
+"""
     # Rename field names to match our schema
     # Todo: allow dynamic league names, seasons
     extracted_data = fill_columns(extracted_data)
@@ -189,4 +191,26 @@ if __name__ == "__main__":
     # Remove score field
     extracted_data.pop("score", None)
 
-    create_csv(extracted_data, filepath2)
+    csv_filename = html_filename.split(".")[0] + ".csv"
+    data_processed_folder = os.path.join(cur_dir, "..", "data", "processed")
+    data_processed_folder = os.path.normpath(data_processed_folder)
+
+    csv_filename = os.path.join(data_processed_folder, csv_filename)
+    print("data/processes/csv_filename:", csv_filename)
+
+    create_csv(extracted_data, csv_filename)
+"""
+"""
+essential fields: (Must have)
+  - match_id, date, league, season
+  - home_team, away_team
+  - home_score, away_score
+  - source
+
+Field mapping between our schema and the CSV fields:
+  match_id: Referee
+  home_team: HomeTeam
+  away_team: AwayTeam
+  home_score: FTHG
+  away_score: FTAG
+"""

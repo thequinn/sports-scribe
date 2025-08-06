@@ -189,10 +189,56 @@ def generate_request_url(league_id, league_name, season):
     return url
 
 
-def extract_elements(soup, element):
-    """Scrape data from HTML content."""
+def extract_columns(soup, data_fields, html_filepath):
+    # A quick check to make sure the file exists before we try to read it
+    if not os.path.exists(html_filepath):
+        print(f"Error: File not found at {html_filepath}")
+        print("Please update the 'html_filepath' variable with the correct location.")
+    else:
+        parsed_rows = []
+        # Find the specific table we care about using BeautifulSoup
+        table = soup.find("table", class_="stats_table")
 
-    """Extract Dates first for a try..."""
+        if table:
+            for row in table.find("tbody").find_all("tr"):
+
+                # For each row, find the specific cells '<td>' by their 'data-stat' attribute
+                date_cell = row.find("td", {"data-stat": "date"})
+                score_cell = row.find("td", {"data-stat": "score"})
+                home_team_cell = row.find("td", {"data-stat": "home_team"})
+                away_team_cell = row.find("td", {"data-stat": "away_team"})
+
+                # Extract the text from each cell, checking if the cell was found
+                date = date_cell.text.strip() if date_cell else ""
+                score = score_cell.text.strip() if score_cell else ""
+                home_team = home_team_cell.text.strip() if home_team_cell else ""
+                away_team = away_team_cell.text.strip() if away_team_cell else ""
+
+                # Create a dictionary for each row
+                parsed_rows.append(
+                    {
+                        "date": date,
+                        "score": score,
+                        "home_team": home_team,
+                        "away_team": away_team,
+                    }
+                )
+
+            # Convert our list of dictionaries into a pandas DataFrame
+        if parsed_rows:
+            df_bs = pd.DataFrame(parsed_rows)
+            print(
+                "\n--- SUCCESS! Here is your final, clean data using BeautifulSoup: ---"
+            )
+            print(df_bs.head())
+        else:
+            print("\n--- BEAUTIFULSOUP ERROR ---")
+            print(
+                "Could not parse any rows. Check the selectors (e.g., 'data-stat' values)."
+            )
+
+
+"""def extract_elements(soup, element):
     # Todo: extract essential fields
 
     # For example, to extract dates:
@@ -200,18 +246,23 @@ def extract_elements(soup, element):
     #
     # FBref.com uses these data-stat attributes to label every single piece of data in their tables.
     data_cells = soup.find_all("td", attrs={"data-stat": element})
+    print(f"Found {len(data_cells)} {element} cells.")
+    print(f"First 5 {element} cells: {data_cells[:5]}\n")
 
     # Create an empty list to hold our clean dates
-    all_data = []
+    col_data = []
 
     # Loop through every cell we found
     for cell in data_cells:
-        data_text = cell.get_text()  # Get the visible text (e.g., "2024-08-17")
-        if data_text:  # Make sure it's not an empty string
-            all_data.append(data_text)
+        cell_text = cell.get_text()  # Get the visible text (e.g., "2024-08-17")
+        print(f"cell_text: {cell_text}")
+        if cell_text:  # Make sure it's not an empty string
+            # print("cell_text is not empty")
+            col_data.append(cell_text)
 
-    # print(all_dates)
-    return all_data
+    print(f"\nExtracted {element}:\n{col_data}")
+    return col_data
+"""
 
 
 def create_csv(extracted_data, filepath):
