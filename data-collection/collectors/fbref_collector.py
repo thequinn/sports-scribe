@@ -65,100 +65,29 @@ additional fields: (Optional)
 """
 
 
-def download_single_html_page(url):
-    """
-    Fetches a HTML page from the specified URL and saves it locally.
+def extract_elements(soup, element):
+    """Scrape data from HTML content."""
 
-    Example link to download html data for premier league 2024-25
-    https://fbref.com/en/comps/9/2024-2025/schedule/2024-2025-Premier-League-Scores-and-Fixtures
-    """
+    """Extract Dates first for a try..."""
+    # Todo: extract essential fields
 
-    base_url = "https://fbref.com/en/comps/9/2024-2025/schedule/2024-2025-Premier-League-Scores-and-Fixtures"
+    # For example, to extract dates:
+    # - Find all the <td> elements that have the attribute data-stat="date"
+    #
+    # FBref.com uses these data-stat attributes to label every single piece of data in their tables.
+    data_cells = soup.find_all("td", attrs={"data-stat": element})
 
-    # Create a session to maintain cookies and connection pooling
-    session = requests.Session()
+    # Create an empty list to hold our clean dates
+    all_data = []
 
-    # Added comprehensive browser-like headers to mimic real user requestsand avoid 403 errors
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "Cache-Control": "max-age=0",
-        "DNT": "1",
-        "Referer": "https://fbref.com/",
-    }
-    session.headers.update(headers)
+    # Loop through every cell we found
+    for cell in data_cells:
+        data_text = cell.get_text()  # Get the visible text (e.g., "2024-08-17")
+        if data_text:  # Make sure it's not an empty string
+            all_data.append(data_text)
 
-    # Introduce random delay to mimic human behavior
-    delay = random.uniform(1.0, 3.0)
-    print(f"Sleeping for {delay:.2f} seconds to mimic human behavior.")
-    time.sleep(delay)
-
-    print(f"Downloading HTML page from {url}...")
-
-    # First, visit the main page to establish session
-    try:
-        print("Establishing session by visiting main page...")
-        main_response = session.get("https://fbref.com/", timeout=30)
-        print(f"Main page status: {main_response.status_code}")
-        time.sleep(random.uniform(1, 3))
-    except Exception as e:
-        print(f"Warning: Could not establish session: {e}")
-
-    try:
-        # Retry logic for handling transient issues
-        for i in range(3):
-            print(f"Attempt {i+1} of 3...")
-            response = session.get(url, timeout=30)
-
-            if response.status_code == 200:
-                html_content = response.text
-                print(
-                    f"Request success. HTML content length: {len(html_content)} characters"
-                )
-                return html_content
-            elif response.status_code == 403:
-                print(
-                    f"403 Forbidden error. This might be due to rate limiting or bot detection."
-                )
-                if i < 2:  # Don't sleep on last attempt
-                    delay = random.uniform(5, 15)
-                    print(f"Waiting {delay:.2f} seconds before retry...")
-                    time.sleep(delay)
-            else:
-                print(f"Unexpected status code: {response.status_code}")
-                if i < 2:
-                    time.sleep(random.uniform(2, 8))
-
-        # If we get here, all retries failed
-        response.raise_for_status()  # This will raise the last error
-
-    except requests.exceptions.RequestException as e:
-        print(f"Failed to fetch data from {url}. Error: {e}")
-        if hasattr(e, "response") and e.response is not None:
-            print(f"Status code: {e.response.status_code}")
-            print(f"Response headers: {dict(e.response.headers)}")
-            if e.response.text:
-                print(f"Response preview: {e.response.text[:500]}...")
-
-        # Suggest alternative approaches
-        print("\nSuggested alternatives:")
-        print("1. Use selenium with a real browser")
-        print("2. Check if FBRef has an official API")
-        print("3. Try accessing the data during off-peak hours")
-        print("4. Consider using a proxy or VPN")
-
-        raise ValueError(f"Failed to fetch data from {url}: {e}")
-
-    finally:
-        session.close()
+    # print(all_dates)
+    return all_data
 
 
 def download_with_selenium(url):
