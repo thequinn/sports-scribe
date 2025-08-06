@@ -32,10 +32,38 @@ sys.path.append(data_collection_dir)
 
 from collectors.football_data_collector import download_csv, read_and_concat_csvs
 from collectors.fbref_collector import (
+    convert_score_to_home_score_and_away_score,
     download_with_selenium,
+    fill_columns,
     generate_request_url,
     save_html_to_file,
+    extract_elements,
+    create_csv,
 )
+
+
+# Data Requirements:
+data_fields = [
+    # "match_id",
+    "date",
+    # "league",
+    # "season",
+    "home_team",
+    "away_team",
+    "score",
+    # "home_score",
+    # "away_score",
+    # "source",
+]
+
+"""
+# Todo: Add later
+
+additional data fields: (Optional)
+  - referee, attendance, venue
+  - half_time_scores
+  - basic_statistics (shots, possession)
+"""
 
 
 def generate_request_url(league_id, league_name, season):
@@ -92,6 +120,7 @@ if __name__ == "__main__":
     league_names = ["Premier-League", "Champions-League", "La-Liga"]
     seasons= [2020, 2021, 2022, 2023, 2024]
     """
+    """
     league_ids = [8]  # Premier League, Champions League, La Liga
     league_names = ["Champions-League"]
     seasons = [2024]
@@ -112,6 +141,52 @@ if __name__ == "__main__":
     except ValueError as selenium_error:
         print(f"\nSelenium method also failed: {selenium_error}")
         print("\nBoth methods failed. This site has strong bot protection.")
+    """
+
+    # Add code to extract data from the downloaded .html for quick testing purpose
+    cur_dir = os.path.dirname((os.path.abspath(__file__)))
+
+    filename = "fbref_Champions-League_2024_2025.html"
+    data_raw_folder = os.path.join(cur_dir, "..", "data", "raw")
+    data_raw_folder = os.path.normpath(data_raw_folder)
+
+    filepath = os.path.join(data_raw_folder, filename)
+    print("data/raw/filepath:", filepath)
+
+    filename2 = filename.split(".")[0] + ".csv"
+    data_processed_folder = os.path.join(cur_dir, "..", "data", "processed")
+    data_processed_folder = os.path.normpath(data_processed_folder)
+
+    filepath2 = os.path.join(data_processed_folder, filename2)
+    print("data/processes/filepath2:", filepath2)
+
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            html_content = f.read()
+    except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
+        print(f"Error reading file: {e}")
+        html_content = ""  # Or handle fallback logic
 
     # Assuming 'html_content' is the variable holding your downloaded HTML
-    # soup = BeautifulSoup(html_content, "lxml")
+    soup = BeautifulSoup(html_content, "lxml")
+
+    # Scraping/Extracting the essential fields for DB later
+    # Todo: Add additional fields later
+    extracted_data = {}
+    for data_field in data_fields:
+        print(f"Extracting {data_field}...")
+        extracted_data[data_field] = extract_elements(soup, data_field)
+        print(f"Extracted {data_field}:")
+        print(extracted_data[data_field])
+
+    # Rename field names to match our schema
+    # Todo: allow dynamic league names, seasons
+    extracted_data = fill_columns(extracted_data)
+
+    # Convert score to home_score and away_score
+    convert_score_to_home_score_and_away_score(extracted_data)
+
+    # Remove score field
+    extracted_data.pop("score", None)
+
+    create_csv(extracted_data, filepath2)

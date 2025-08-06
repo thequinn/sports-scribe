@@ -65,31 +65,6 @@ additional fields: (Optional)
 """
 
 
-def extract_elements(soup, element):
-    """Scrape data from HTML content."""
-
-    """Extract Dates first for a try..."""
-    # Todo: extract essential fields
-
-    # For example, to extract dates:
-    # - Find all the <td> elements that have the attribute data-stat="date"
-    #
-    # FBref.com uses these data-stat attributes to label every single piece of data in their tables.
-    data_cells = soup.find_all("td", attrs={"data-stat": element})
-
-    # Create an empty list to hold our clean dates
-    all_data = []
-
-    # Loop through every cell we found
-    for cell in data_cells:
-        data_text = cell.get_text()  # Get the visible text (e.g., "2024-08-17")
-        if data_text:  # Make sure it's not an empty string
-            all_data.append(data_text)
-
-    # print(all_dates)
-    return all_data
-
-
 def download_with_selenium(url):
     """
     Uses Selenium WebDriver to handle JavaScript-based bot detection (like Cloudflare).
@@ -212,6 +187,115 @@ def generate_request_url(league_id, league_name, season):
     url = f"https://fbref.com/en/comps/{league_id}/{season_code}/schedule/{endpoint}"
 
     return url
+
+
+def extract_elements(soup, element):
+    """Scrape data from HTML content."""
+
+    """Extract Dates first for a try..."""
+    # Todo: extract essential fields
+
+    # For example, to extract dates:
+    # - Find all the <td> elements that have the attribute data-stat="date"
+    #
+    # FBref.com uses these data-stat attributes to label every single piece of data in their tables.
+    data_cells = soup.find_all("td", attrs={"data-stat": element})
+
+    # Create an empty list to hold our clean dates
+    all_data = []
+
+    # Loop through every cell we found
+    for cell in data_cells:
+        data_text = cell.get_text()  # Get the visible text (e.g., "2024-08-17")
+        if data_text:  # Make sure it's not an empty string
+            all_data.append(data_text)
+
+    # print(all_dates)
+    return all_data
+
+
+def create_csv(extracted_data, filepath):
+    """Create a CSV file from the extracted data (Essential fields for DB)"""
+    pd.DataFrame(extracted_data).to_csv(filepath, index=False)
+    print(f"CSV file created: {filepath}")
+
+
+def convert_score_to_home_score_and_away_score(extracted_data):
+    """
+    score has various formats:
+    •  Regular scores: "0–3", "3–1", "2–0"
+    •  Penalty scores: "(1) 0–1 (4)", "(5) 1–2 (6)", "(2) 1–0 (4)"
+    """
+
+    # Clear existing home_score and away_score data since fill_columns already populated them
+    extracted_data["home_score"] = []
+    extracted_data["away_score"] = []
+
+    for idx, score in enumerate(extracted_data["score"]):
+        try:
+            # Handle penalty scores like "(1) 0–1 (4)" or "(5) 1–2 (6)"
+            if score.startswith("(") and ")" in score:
+                # Extract the main score part (e.g., "0–1" from "(1) 0–1 (4)")
+                # Find the pattern: ") SCORE ("
+                start_idx = score.find(") ") + 2
+                end_idx = score.find(" (", start_idx)
+
+                # Handle cases where there might not be trailing penalty info
+                if end_idx == -1:
+                    main_score = score[start_idx:]
+                else:
+                    main_score = score[start_idx:end_idx]
+            else:
+                main_score = score
+
+            # Split on the en dash (–) character, not regular hyphen (-)
+            if "–" in main_score:
+                home_score, away_score = main_score.split("–")
+            elif "-" in main_score:
+                # Fallback to regular hyphen if en dash not found
+                home_score, away_score = main_score.split("-")
+            else:
+                print(f"Warning: Could not parse score at index {idx}: '{score}'")
+                home_score, away_score = "", ""
+
+            # Clean up any whitespace
+            home_score = home_score.strip()
+            away_score = away_score.strip()
+
+            extracted_data["home_score"].append(home_score)
+            extracted_data["away_score"].append(away_score)
+
+        except Exception as e:
+            print(f"Error parsing score at index {idx}: '{score}' - {e}")
+            # Add empty scores for failed parsing
+            extracted_data["home_score"].append("")
+            extracted_data["away_score"].append("")
+
+
+def fill_columns(extracted_data):
+    # Initialize missing keys as empty lists
+    required_keys = [
+        "match_id",
+        "league",
+        "season",
+        "home_score",
+        "away_score",
+        "source",
+    ]
+    for key in required_keys:
+        if key not in extracted_data:
+            extracted_data[key] = []
+
+    # Insert other fields needed
+    for i in range(len(extracted_data["date"])):
+        extracted_data["match_id"].append(i + 1)
+        extracted_data["league"].append("Champions League")
+        extracted_data["season"].append("2024-2025")
+        extracted_data["home_score"].append("")
+        extracted_data["away_score"].append("")
+        extracted_data["source"].append("fbref.com")
+
+    return extracted_data
 
 
 if __name__ == "__main__":
