@@ -224,129 +224,88 @@ def extract_columns(soup, data_fields, html_filepath):
                     }
                 )
 
-            # Convert our list of dictionaries into a pandas DataFrame
+        # Convert our list of dictionaries into a pandas DataFrame
         if parsed_rows:
-            df_bs = pd.DataFrame(parsed_rows)
-            print(
-                "\n--- SUCCESS! Here is your final, clean data using BeautifulSoup: ---"
+            # 2nd arg preserves the order of the columns
+            df_bs = pd.DataFrame(
+                parsed_rows, columns=["date", "score", "home_team", "away_team"]
             )
+            print("\nSuccess! Extracted columns using BeautifulSoup:\n")
             print(df_bs.head())
         else:
-            print("\n--- BEAUTIFULSOUP ERROR ---")
-            print(
-                "Could not parse any rows. Check the selectors (e.g., 'data-stat' values)."
-            )
+            print("\nFailed to extract columns using BeautifulSoup.")
+    return df_bs
 
 
-"""def extract_elements(soup, element):
-    # Todo: extract essential fields
-
-    # For example, to extract dates:
-    # - Find all the <td> elements that have the attribute data-stat="date"
-    #
-    # FBref.com uses these data-stat attributes to label every single piece of data in their tables.
-    data_cells = soup.find_all("td", attrs={"data-stat": element})
-    print(f"Found {len(data_cells)} {element} cells.")
-    print(f"First 5 {element} cells: {data_cells[:5]}\n")
-
-    # Create an empty list to hold our clean dates
-    col_data = []
-
-    # Loop through every cell we found
-    for cell in data_cells:
-        cell_text = cell.get_text()  # Get the visible text (e.g., "2024-08-17")
-        print(f"cell_text: {cell_text}")
-        if cell_text:  # Make sure it's not an empty string
-            # print("cell_text is not empty")
-            col_data.append(cell_text)
-
-    print(f"\nExtracted {element}:\n{col_data}")
-    return col_data
-"""
-
-
-def create_csv(extracted_data, filepath):
-    """Create a CSV file from the extracted data (Essential fields for DB)"""
-    pd.DataFrame(extracted_data).to_csv(filepath, index=False)
-    print(f"CSV file created: {filepath}")
-
-
-def convert_score_to_home_score_and_away_score(extracted_data):
+def convert_score_to_home_score_and_away_score(score_column):
     """
     score has various formats:
     •  Regular scores: "0–3", "3–1", "2–0"
     •  Penalty scores: "(1) 0–1 (4)", "(5) 1–2 (6)", "(2) 1–0 (4)"
     """
+    home_scores = []
+    away_scores = []
+    for score in score_column:
+        if score.startswith("(") and ")" in score:
+            # Extract the main score part (e.g., "0–1" from "(1) 0–1 (4)")
+            main_score = score[score.find(")") + 1 : score.find(" (")]
+        else:
+            main_score = score
 
-    # Clear existing home_score and away_score data since fill_columns already populated them
-    extracted_data["home_score"] = []
-    extracted_data["away_score"] = []
+        main_score = main_score.strip()
 
-    for idx, score in enumerate(extracted_data["score"]):
-        try:
-            # Handle penalty scores like "(1) 0–1 (4)" or "(5) 1–2 (6)"
-            if score.startswith("(") and ")" in score:
-                # Extract the main score part (e.g., "0–1" from "(1) 0–1 (4)")
-                # Find the pattern: ") SCORE ("
-                start_idx = score.find(") ") + 2
-                end_idx = score.find(" (", start_idx)
+        if "–" in main_score:
+            home_score, away_score = main_score.split("–")
+        elif "-" in main_score:
+            # Fallback to regular hyphen if en dash not found
+            home_score, away_score = main_score.split("-")
+        else:
+            print(f"Warning: Could not parse score: '{score}'")
+            home_score, away_score = "", ""
 
-                # Handle cases where there might not be trailing penalty info
-                if end_idx == -1:
-                    main_score = score[start_idx:]
-                else:
-                    main_score = score[start_idx:end_idx]
-            else:
-                main_score = score
+        home_scores.append(home_score)
+        away_scores.append(away_score)
+        print(home_scores, "  ", away_scores)
 
-            # Split on the en dash (–) character, not regular hyphen (-)
-            if "–" in main_score:
-                home_score, away_score = main_score.split("–")
-            elif "-" in main_score:
-                # Fallback to regular hyphen if en dash not found
-                home_score, away_score = main_score.split("-")
-            else:
-                print(f"Warning: Could not parse score at index {idx}: '{score}'")
-                home_score, away_score = "", ""
-
-            # Clean up any whitespace
-            home_score = home_score.strip()
-            away_score = away_score.strip()
-
-            extracted_data["home_score"].append(home_score)
-            extracted_data["away_score"].append(away_score)
-
-        except Exception as e:
-            print(f"Error parsing score at index {idx}: '{score}' - {e}")
-            # Add empty scores for failed parsing
-            extracted_data["home_score"].append("")
-            extracted_data["away_score"].append("")
+    return home_scores, away_scores
 
 
-def fill_columns(extracted_data):
-    # Initialize missing keys as empty lists
-    required_keys = [
-        "match_id",
-        "league",
-        "season",
-        "home_score",
-        "away_score",
-        "source",
-    ]
-    for key in required_keys:
-        if key not in extracted_data:
-            extracted_data[key] = []
+def fill_and_convert_columns(df):
+    if "df" in locals() and not df.empty:
+        # Add match_id column
+        df["match_id"] = range(1, len(df) + 1)
 
-    # Insert other fields needed
-    for i in range(len(extracted_data["date"])):
-        extracted_data["match_id"].append(i + 1)
-        extracted_data["league"].append("Champions League")
-        extracted_data["season"].append("2024-2025")
-        extracted_data["home_score"].append("")
-        extracted_data["away_score"].append("")
-        extracted_data["source"].append("fbref.com")
+        # Add new columns
+        # Pandas is smart enough to "broadcast" this single value to every row.
+        df["league"] = "Premier League"
+        df["season"] = "2024-2025"
 
-    return extracted_data
+        # Convert the score column to home_score and away_score, then add the 2 columns to df
+        df["home_score"], df["away_score"] = convert_score_to_home_score_and_away_score(
+            df["score"]
+        )
+
+        df["source"] = "fbref.com"
+
+        print("\nSuccess! DataFrame after adding new columns:\n")
+        print(df.head())
+
+    else:
+        print(
+            "DataFrame 'df' not found or is empty. Please run the parsing step first."
+        )
+
+    # Drop the score column
+    df = df.drop(columns="score")
+
+    return df
+
+
+def create_csv(df, filepath):
+    # Save the dataframe to CSV
+
+    # index=False to avoid writing row numbers to the CSV
+    df.to_csv(filepath, index=False)
 
 
 if __name__ == "__main__":

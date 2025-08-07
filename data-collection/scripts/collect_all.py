@@ -35,7 +35,7 @@ from collectors.fbref_collector import (
     convert_score_to_home_score_and_away_score,
     download_with_selenium,
     extract_columns,
-    fill_columns,
+    fill_and_convert_columns,
     generate_request_url,
     save_html_to_file,
     create_csv,
@@ -168,28 +168,11 @@ if __name__ == "__main__":
 
     ##################
     # Scraping/Extracting the essential fields for DB
-    # extract_elements(soup, data_fields)
-    extract_columns(soup, data_fields, html_filepath)
-    print(".......")
+    df = extract_columns(soup, data_fields, html_filepath)
 
-    """
-    extracted_data = {}
-    for data_field in data_fields:
-        print(f"Extracting {data_field}...")
-        extracted_data[data_field] = extract_elements(soup, data_field)
-        print(f"Extracted {data_field}:")
-        print(extracted_data[data_field])
-    """
-"""
-    # Rename field names to match our schema
-    # Todo: allow dynamic league names, seasons
-    extracted_data = fill_columns(extracted_data)
-
-    # Convert score to home_score and away_score
-    convert_score_to_home_score_and_away_score(extracted_data)
-
-    # Remove score field
-    extracted_data.pop("score", None)
+    df = fill_and_convert_columns(df)
+    print("After filling columns:")
+    print(df.iloc[0])
 
     csv_filename = html_filename.split(".")[0] + ".csv"
     data_processed_folder = os.path.join(cur_dir, "..", "data", "processed")
@@ -198,8 +181,23 @@ if __name__ == "__main__":
     csv_filename = os.path.join(data_processed_folder, csv_filename)
     print("data/processes/csv_filename:", csv_filename)
 
-    create_csv(extracted_data, csv_filename)
-"""
+    # Reorder columns based on the essential fields specified on PRD
+    df = df[
+        [
+            "match_id",
+            "date",
+            "league",
+            "season",
+            "home_team",
+            "away_team",
+            "home_score",
+            "away_score",
+            "source",
+        ]
+    ]
+
+    create_csv(df, csv_filename)
+
 """
 essential fields: (Must have)
   - match_id, date, league, season
