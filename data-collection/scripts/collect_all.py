@@ -42,6 +42,8 @@ from collectors.fbref_collector import (
     create_csv,
 )
 
+resources = {0: "football-data", 1: "fbref.com", 2: "whoscored.com"}
+
 # Essential data fields:
 # Note: the fields commented out will be filled during data processing
 data_fields = [
@@ -89,51 +91,44 @@ if __name__ == "__main__":
             url = generate_football_data_url(league_code, league_name, season)
 
             # Download the CSV file and rename it
-            raw_csv_filename = f"{league_name}_{season}.csv"
+            raw_csv_filename = f"{resources[0]}_{league_name}_{season}.csv"
             download_csv(url, raw_csv_filename)
             df_raw = read_csv(raw_csv_filename)
-            print("df_raw.head():", df_raw.head())
-            print("df_raw.columns:", df_raw.columns)
-
-            # Rename columns to match our schema
             df_cleaned = rename_columns(df_raw)
             df_cleaned = add_new_columns(df_cleaned, raw_csv_filename)
             df_processed = process_df(df_cleaned)
             df_processed = save_df_to_csv(df_processed, raw_csv_filename)
-    print("\n")
+    print("\n- - - - - - - - - - - - - - - - - - - - - - -\n")
 
-    # read_and_concat_csvs()
-    # print("\n")
-
-    # print("Collecting data from fbref.com...\n")
-    # print(
-    #     "\nfbfre.com has strong bot protection, requests method is not reliable. Using Selenium method only..."
-    # )
+    print("Collecting data from fbref.com...\n")
+    print(
+        "\nfbfre.com has strong bot protection, requests method is not reliable. Using Selenium method only..."
+    )
 
     # league_ids = [9, 8, 12]  # Premier League, Champions League, La Liga
     # league_names = ["Premier-League", "Champions-League", "La-Liga"]
     # seasons = [2020, 2021, 2022, 2023, 2024]
 
-    # league_ids = [8]  # Premier League, Champions League, La Liga
-    # league_names = ["Champions-League"]
-    # seasons = [2024]
+    league_ids = [8]  # Premier League, Champions League, La Liga
+    league_names = ["Champions-League"]
+    seasons = [2024]
 
-    # try:
-    #     for season in seasons:
-    #         for league_id, league_name in zip(league_ids, league_names):
-    #             url = generate_request_url(league_id, league_name, season)
-    #             print(f"\nGenerated URL: {url}")
+    try:
+        for season in seasons:
+            for league_id, league_name in zip(league_ids, league_names):
+                url = generate_request_url(league_id, league_name, season)
+                print(f"\nGenerated URL: {url}")
 
-    #             html_content = download_with_selenium(url)
-    #         print("Success with Selenium method!")
+                html_content = download_with_selenium(url)
+            print("Success with Selenium method!")
 
-    #         # Save the HTML content to a file for inspection
-    #         output_file = f"fbref_{league_name}_{season}_{season+1}.html"
-    #     save_html_to_file(html_content, output_file)
+            # Save the HTML content to a file for inspection
+            output_file = f"fbref_{league_name}_{season}_{season+1}.html"
+        save_html_to_file(html_content, output_file)
 
-    # except ValueError as selenium_error:
-    #     print(f"\nSelenium method also failed: {selenium_error}")
-    #     print("\nBoth methods failed. This site has strong bot protection.")
+    except ValueError as selenium_error:
+        print(f"\nSelenium method also failed: {selenium_error}")
+        print("\nBoth methods failed. This site has strong bot protection.")
 
 """
     # Add code to extract data from the downloaded .html for quick testing purpose
