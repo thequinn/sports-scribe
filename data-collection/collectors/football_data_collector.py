@@ -150,8 +150,9 @@ def normalize_date(df: pd.DataFrame) -> pd.DataFrame:
     if "date" in df.columns:
         try:
             df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date.astype(str)
-        except Exception:
-            pass
+        except Exception as e:
+            print("Failed to normalize date")
+            print(e)
 
     return df
 

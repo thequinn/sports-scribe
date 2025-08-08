@@ -8,13 +8,11 @@ requests-based fallback with a clear warning about bot protection.
 
 import os
 import pandas as pd
-from bs4 import BeautifulSoup
 import time
 import random
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
 
 
@@ -142,8 +140,9 @@ def normalize_date(df: pd.DataFrame) -> pd.DataFrame:
     if "date" in df.columns:
         try:
             df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date.astype(str)
-        except Exception:
-            pass
+        except Exception as e:
+            print("Failed to normalize date")
+            print(e)
 
     return df
 

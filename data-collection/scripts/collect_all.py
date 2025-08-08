@@ -113,7 +113,7 @@ if __name__ == "__main__":
             print(df_cleaned.head())
 
             # Save the processed data to a new CSV file
-            df_cleaned = save_df_to_csv(df_cleaned, raw_csv_filename)
+            save_df_to_csv(df_cleaned, raw_csv_filename)
     print("\n- - - - - - - - - - - - - - - - - - - - - - -\n")
 
     print("Collecting data from fbref.com...\n")
