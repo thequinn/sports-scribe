@@ -19,7 +19,7 @@ import requests
 import pandas as pd
 
 
-def generate_request_url(league_id, league_name, season):
+def generate_football_data_url(league_id, league_name, season):
     """
     Generate url based on league and season.
 
@@ -45,26 +45,20 @@ def generate_request_url(league_id, league_name, season):
     return url
 
 
-def get_data_raw_folder():
-    # Get the cur script dir for .py
-    cur_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # Navigate to the data/raw, and clean up the path
-    data_raw_folder = os.path.join(cur_dir, "..", "data", "raw")
-    data_raw_folder = os.path.normpath(data_raw_folder)
-
-    return data_raw_folder
+def _here() -> str:
+    return os.path.dirname(os.path.abspath(__file__))
 
 
-def get_data_processed_folder():
-    # Get the cur script dir for .py
-    cur_dir = os.path.dirname(os.path.abspath(__file__))
+def get_data_raw_folder() -> str:
+    """Absolute path to data-collection/data/raw."""
+    p = os.path.join(_here(), "..", "data", "raw")
+    return os.path.normpath(p)
 
-    # Navigate to the data/processed, and clean up the path
-    data_processed_folder = os.path.join(cur_dir, "..", "data", "processed")
-    data_processed_folder = os.path.normpath(data_processed_folder)
 
-    return data_processed_folder
+def get_data_processed_folder() -> str:
+    """Absolute path to data-collection/data/processed."""
+    p = os.path.join(_here(), "..", "data", "processed")
+    return os.path.normpath(p)
 
 
 def download_csv(url: str, filename: str = "football-data_data.csv"):
@@ -86,7 +80,6 @@ def download_csv(url: str, filename: str = "football-data_data.csv"):
     try:
         response = requests.get(url)
         response.raise_for_status()  # Raise HTTPError for bad responses
-        # print("Request successful:", response.status_code)
     except requests.exceptions.RequestException as e:
         raise ValueError(f"Failed to fetch data from {url}. Error: {e}")
 
@@ -99,10 +92,7 @@ def download_csv(url: str, filename: str = "football-data_data.csv"):
 def read_csv(filename: str) -> pd.DataFrame:
     """Read CSV file into pandas DataFrame."""
     data_raw_folder = get_data_raw_folder()
-    print(f"data_raw_folder: {data_raw_folder}, filename: {filename}")
     filepath = os.path.join(data_raw_folder, filename)
-    print(f"Reading CSV file {filepath}")
-
     return pd.read_csv(filepath)
 
 
@@ -118,7 +108,7 @@ def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename(columns=column_mapping)
 
 
-def add_new_columns(df_clean, file):
+def add_new_columns_to_football_data(df_clean, file):
     """Add new columns to df_clean."""
     df_clean["match_id"] = df_clean.index
 
@@ -136,7 +126,7 @@ def get_columns(df, *args) -> pd.DataFrame:
     return df[valid_cols]
 
 
-def process_df(df):
+def reorder_df(df):
     # Get specified columns and reorder them
     df_processed = get_columns(
         df,
@@ -156,9 +146,19 @@ def process_df(df):
     return df_processed
 
 
-def save_df_to_csv(df, raw_filename):
-    """Save DataFrame to CSV."""
+def normalize_date(df: pd.DataFrame) -> pd.DataFrame:
+    # Best-effort date normalization (expects day/month/year or ISO)
+    if "date" in df.columns:
+        try:
+            df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date.astype(str)
+        except Exception:
+            pass
 
+    return df
+
+
+def save_df_to_csv(df, raw_filename):
+    """Save DataFrame to CSV"""
     processed_filename = raw_filename.split(".")[0] + "_processed.csv"
     filepath = os.path.join(get_data_processed_folder(), processed_filename)
     df.to_csv(filepath, index=False)

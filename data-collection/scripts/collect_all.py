@@ -23,23 +23,23 @@ data_collection_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 sys.path.append(data_collection_dir)
 
 from collectors.football_data_collector import (
-    add_new_columns,
+    add_new_columns_to_football_data,
     download_csv,
-    # read_and_concat_csvs,
-    generate_request_url as generate_football_data_url,
-    process_df,
+    generate_football_data_url,
+    reorder_df,
     read_csv,
     rename_columns,
     save_df_to_csv,
 )
 from collectors.fbref_collector import (
-    convert_score_to_home_score_and_away_score,
+    generate_fbref_url,
     download_with_selenium,
     extract_columns,
-    fill_and_convert_columns,
-    generate_request_url as generate_fbref_url,
-    save_html_to_file,
+    add_new_columns_to_fbref,
+    reorder_df,
+    normalize_date,
     create_csv,
+    save_html_to_file,
 )
 
 resources = {0: "football-data", 1: "fbref.com", 2: "whoscored.com"}
@@ -67,16 +67,24 @@ data_fields = [
 """
 
 
+def get_data_folder():
+    # Get the cur script dir for .py
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Navigate to the data/raw, and clean up the path
+    data_raw_folder = os.path.join(cur_dir, "..", "data")
+    data_raw_folder = os.path.normpath(data_raw_folder)
+
+    return data_raw_folder
+
+
 if __name__ == "__main__":
 
     print("Collecting data from football-data.co.uk...\n")
 
     # Premier League, Champions League (Le Championnat d'Europe), La Liga
-    # leagues = [{"E0": "Premier-League"}, {"SP1": "La-Liga"}, {"F1": "Champions-League"}]
-    # seasons = [2024, 2023, 2022, 2021, 2020]  # Last 5 seasons
-
-    leagues = [{"E0": "Premier-League"}]
-    seasons = [2024]
+    leagues = [{"E0": "Premier-League"}, {"SP1": "La-Liga"}, {"F1": "Champions-League"}]
+    seasons = [2024, 2023, 2022, 2021, 2020]  # Last 5 seasons
 
     # Flatten the list of dictionaries, leagues
     # ex. leagues_flat = [("E0": "Premier League"), ("SP1": "La Liga")]
@@ -93,95 +101,57 @@ if __name__ == "__main__":
             # Download the CSV file and rename it
             raw_csv_filename = f"{resources[0]}_{league_name}_{season}.csv"
             download_csv(url, raw_csv_filename)
+
+            # Read the CSV file into a pandas DataFrame
             df_raw = read_csv(raw_csv_filename)
+
+            # Clean and process the data
             df_cleaned = rename_columns(df_raw)
-            df_cleaned = add_new_columns(df_cleaned, raw_csv_filename)
-            df_processed = process_df(df_cleaned)
-            df_processed = save_df_to_csv(df_processed, raw_csv_filename)
+            df_cleaned = add_new_columns_to_football_data(df_cleaned, raw_csv_filename)
+            df_cleaned = reorder_df(df_cleaned)
+            df_cleaned = normalize_date(df_cleaned)
+            print(df_cleaned.head())
+
+            # Save the processed data to a new CSV file
+            df_cleaned = save_df_to_csv(df_cleaned, raw_csv_filename)
     print("\n- - - - - - - - - - - - - - - - - - - - - - -\n")
 
     print("Collecting data from fbref.com...\n")
     print(
-        "\nfbfre.com has strong bot protection, requests method is not reliable. Using Selenium method only..."
+        "fbfre.com has strong bot protection, requests method is not reliable. Using Selenium method only..."
     )
 
-    # league_ids = [9, 8, 12]  # Premier League, Champions League, La Liga
-    # league_names = ["Premier-League", "Champions-League", "La-Liga"]
-    # seasons = [2020, 2021, 2022, 2023, 2024]
+    league_ids = [9, 8, 12]  # Premier League, Champions League, La Liga
+    league_names = ["Premier-League", "Champions-League", "La-Liga"]
+    seasons = [2020, 2021, 2022, 2023, 2024]
 
-    league_ids = [8]  # Premier League, Champions League, La Liga
-    league_names = ["Champions-League"]
-    seasons = [2024]
+    for season in seasons:
+        for league_id, league_name in zip(league_ids, league_names):
+            url = generate_fbref_url(league_id, league_name, season)
+            html_content = download_with_selenium(url)
 
-    try:
-        for season in seasons:
-            for league_id, league_name in zip(league_ids, league_names):
-                url = generate_request_url(league_id, league_name, season)
-                print(f"\nGenerated URL: {url}")
+            # Save the downloadedHTML content to a file for inspection
+            html_filename = f"fbref_{league_name}_{season}.html"
+            save_html_to_file(html_content, html_filename)
 
-                html_content = download_with_selenium(url)
-            print("Success with Selenium method!")
+            # Read the html file into BeautfulSoup object
+            html_filepath = get_data_folder() + "/raw/" + html_filename
+            try:
+                with open(html_filepath, "r", encoding="utf-8") as f:
+                    html_content = f.read()
+                soup = BeautifulSoup(html_content, "lxml")
+            except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
+                print(f"Error reading file: {e}")
+                # Return an empty soup as fallback
+                soup = BeautifulSoup("", "lxml")
 
-            # Save the HTML content to a file for inspection
-            output_file = f"fbref_{league_name}_{season}_{season+1}.html"
-        save_html_to_file(html_content, output_file)
+            # Scraping/Extracting the essential fields for DB
+            df = extract_columns(soup, data_fields, html_filename)
 
-    except ValueError as selenium_error:
-        print(f"\nSelenium method also failed: {selenium_error}")
-        print("\nBoth methods failed. This site has strong bot protection.")
+            # Clean and process the data
+            df_cleaned = add_new_columns_to_fbref(df, html_filename)
+            df_cleaned = reorder_df(df_cleaned)
+            df_cleaned = normalize_date(df_cleaned)
 
-"""
-    # Add code to extract data from the downloaded .html for quick testing purpose
-    # TODO: handle all 5 seasons data
-    cur_dir = os.path.dirname((os.path.abspath(__file__)))
-
-    html_filename = "fbref_Premier-League_2024_2025.html"
-    data_raw_folder = os.path.join(cur_dir, "..", "data", "raw")
-    data_raw_folder = os.path.normpath(data_raw_folder)
-
-    html_filepath = os.path.join(data_raw_folder, html_filename)
-    print("data/raw/html_filepath:", html_filepath)
-
-    try:
-        with open(html_filepath, "r", encoding="utf-8") as f:
-            html_content = f.read()
-            # print("HTML content loaded from file.")
-            # print(f"html_content: {html_content}")
-    except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
-        print(f"Error reading file: {e}")
-        html_content = ""  # Or handle fallback
-
-    # Assuming 'html_content' is the variable holding your downloaded HTML
-    soup = BeautifulSoup(html_content, "lxml")
-
-    # Scraping/Extracting the essential fields for DB
-    df = extract_columns(soup, data_fields, html_filepath)
-
-    df = fill_and_convert_columns(df)
-    print("After filling columns:")
-    print(df.iloc[0])
-
-    csv_filename = html_filename.split(".")[0] + ".csv"
-    data_processed_folder = os.path.join(cur_dir, "..", "data", "processed")
-    data_processed_folder = os.path.normpath(data_processed_folder)
-
-    csv_filename = os.path.join(data_processed_folder, csv_filename)
-    print("data/processes/csv_filename:", csv_filename)
-
-    # Reorder columns based on the essential fields specified on PRD
-    df = df[
-        [
-            "match_id",
-            "date",
-            "league",
-            "season",
-            "home_team",
-            "away_team",
-            "home_score",
-            "away_score",
-            "source",
-        ]
-    ]
-
-    create_csv(df, csv_filename)
-"""
+            csv_filename = html_filename.split(".")[0] + "_processed.csv"
+            create_csv(df_cleaned, csv_filename)
