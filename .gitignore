@@ -5,6 +5,9 @@
 .env.test.local
 .env.production.local
 
+# Data downloaded, data processed
+
+
 # Python
 __pycache__/
 *.py[cod]
@@ -88,6 +91,12 @@ public
 # Temporary folders
 tmp/
 temp/
+
+# HTMLs
+*.html
+
+# CSVs
+*.csv
 
 # Logs
 logs
