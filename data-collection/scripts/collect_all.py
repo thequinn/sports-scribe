@@ -15,18 +15,18 @@ Field mapping between our schema and the CSV fields:
 
 import sys
 import os
-from bs4 import BeautifulSoup
 
 # Add the data-collection directory to the Python path
 data_collection_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # print("data_collection dir:", data_collection_dir)
 sys.path.append(data_collection_dir)
 
+from bs4 import BeautifulSoup
 from collectors.football_data_collector import (
     add_new_columns_to_football_data,
     download_csv,
     generate_football_data_url,
-    reorder_df,
+    reorder_df_football_data,
     read_csv,
     rename_columns,
     save_df_to_csv,
@@ -36,7 +36,7 @@ from collectors.fbref_collector import (
     download_with_selenium,
     extract_columns,
     add_new_columns_to_fbref,
-    reorder_df,
+    reorder_df_fbref,
     normalize_date,
     create_csv,
     save_html_to_file,
@@ -108,7 +108,7 @@ if __name__ == "__main__":
             # Clean and process the data
             df_cleaned = rename_columns(df_raw)
             df_cleaned = add_new_columns_to_football_data(df_cleaned, raw_csv_filename)
-            df_cleaned = reorder_df(df_cleaned)
+            df_cleaned = reorder_df_football_data(df_cleaned)
             df_cleaned = normalize_date(df_cleaned)
             print(df_cleaned.head())
 
@@ -150,7 +150,7 @@ if __name__ == "__main__":
 
             # Clean and process the data
             df_cleaned = add_new_columns_to_fbref(df, html_filename)
-            df_cleaned = reorder_df(df_cleaned)
+            df_cleaned = reorder_df_fbref(df_cleaned)
             df_cleaned = normalize_date(df_cleaned)
 
             csv_filename = html_filename.split(".")[0] + "_processed.csv"

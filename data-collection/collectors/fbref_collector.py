@@ -7,19 +7,15 @@ requests-based fallback with a clear warning about bot protection.
 """
 
 import os
-import re
 import pandas as pd
 from bs4 import BeautifulSoup
 import time
 import random
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
-
-# -------- Paths (resolved relative to this file) --------
 
 
 def _here() -> str:
@@ -36,9 +32,6 @@ def get_data_processed_folder() -> str:
     """Absolute path to data-collection/data/processed."""
     p = os.path.join(_here(), "..", "data", "processed")
     return os.path.normpath(p)
-
-
-# -------- URL generation --------
 
 
 def generate_fbref_url(league_id: int, league_name: str, season: int) -> str:
@@ -155,7 +148,7 @@ def normalize_date(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def reorder_df(df):
+def reorder_df_fbref(df):
     # Get specified columns and reorder them
     df_processed = get_columns(
         df,
@@ -193,89 +186,89 @@ def create_csv(df: pd.DataFrame, filename: str) -> str:
     return filepath
 
 
+def _configure_chrome_options() -> Options:
+    """Create and return a configured Chrome Options object."""
+    chrome_options = Options()
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option("useAutomationExtension", False)
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    # chrome_options.add_argument('--headless')  # Optional: enable headless mode
+
+    # User agent to mimic real browser
+    chrome_options.add_argument(
+        "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    )
+
+    # Set Chrome binary location for macOS if available
+    chrome_bin = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    if os.path.exists(chrome_bin):
+        chrome_options.binary_location = chrome_bin
+    return chrome_options
+
+
+def _create_driver(chrome_options: Options):
+    """Initialize and return a Chrome WebDriver instance."""
+    print("Starting Chrome WebDriver...")
+    return webdriver.Chrome(options=chrome_options)
+
+
+def _remove_webdriver_flag(driver) -> None:
+    """Mask the webdriver flag to reduce detection."""
+    driver.execute_script(
+        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+    )
+
+
+def _wait_out_challenge(driver, timeout: int = 30) -> None:
+    """Wait for common anti-bot challenge pages to clear, within timeout."""
+    print("Waiting for page to load and any challenges to complete...")
+    try:
+        WebDriverWait(driver, timeout).until(
+            lambda d: "Just a moment" not in d.title
+            and "Checking your browser" not in d.page_source
+        )
+        print("Challenge completed or page loaded successfully.")
+    except TimeoutException:
+        print("Timeout waiting for challenge completion, but proceeding anyway...")
+
+
+def _get_html_or_raise(driver) -> str:
+    """Return page HTML or raise if a challenge page is still present."""
+    html_content = driver.page_source
+    if "Just a moment" in html_content or "Checking your browser" in html_content:
+        raise ValueError("Still showing Cloudflare challenge page")
+    return html_content
+
+
 def download_with_selenium(url):
-    # Why use Selenium?
-
-    # (1) BeautifulSoup is great for static HTML, but if the page loads content dynamically, we need Selenium.
-    #     - Many modern websites dynamically load content using JavaScript, meaning some elements (like tables, buttons, or text) are not present in the initial HTML source when you request the page using requests or BeautifulSoup.
-    #     - Instead, the page executes JavaScript to fetch and display the content after the page has initially loaded.
-
-    # (2) Uses Selenium WebDriver to bypass JavaScript-based bot detection (like Cloudflare).
-
-    # (3) Selenium simulates a real user's behavior, making it harder for websites to detect automated requests.
-
+    """Fetch dynamic page content using Selenium and return HTML (<=50 lines)."""
     driver = None
     try:
-        # Set up Chrome options
-        chrome_options = Options()
-        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option("useAutomationExtension", False)
-        chrome_options.add_argument("--disable-extensions")
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        # Uncomment the next line to run in headless mode
-        # chrome_options.add_argument('--headless')
-
-        # User agent to mimic real browser
-        chrome_options.add_argument(
-            "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        )
-
-        print("Starting Chrome WebDriver...")
-        # Set Chrome binary location for macOS
-        chrome_options.binary_location = (
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-        )
-        driver = webdriver.Chrome(options=chrome_options)
-
-        # Remove the webdriver property to avoid detection
-        driver.execute_script(
-            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-        )
+        options = _configure_chrome_options()
+        driver = _create_driver(options)
+        _remove_webdriver_flag(driver)
 
         print(f"Navigating to {url} ...")
         driver.get(url)
 
-        # Waiting for the webpage to finish loading and for any anti-bot “challenge” screens (like “Just a moment…” or “Checking your browser…”) from Cloudflare to go away before continuing.
-        print("Waiting for page to load and any challenges to complete...")
-        try:
-            # Wait for either the main content to load or timeout
-            WebDriverWait(driver, 30).until(
-                lambda d: "Just a moment" not in d.title
-                and "Checking your browser" not in d.page_source
-            )
-            print("Challenge completed or page loaded successfully.")
-        except TimeoutException:
-            print("Timeout waiting for challenge completion, but proceeding anyway...")
+        _wait_out_challenge(driver, timeout=30)
+        time.sleep(random.uniform(2, 5))  # small buffer to ensure full render
 
-        # Additional wait to ensure page is fully loaded
-        time.sleep(random.uniform(2, 5))
-
-        # Get the page source
-        html_content = driver.page_source
-
-        # Check if we got the actual content
-        if "Just a moment" in html_content or "Checking your browser" in html_content:
-            raise ValueError("Still showing Cloudflare challenge page")
-
-        print(
-            f"Successfully retrieved page. Content length: {len(html_content)} characters"
-        )
-
+        html_content = _get_html_or_raise(driver)
+        print("Successfully retrieved page.")
         return html_content
 
     except WebDriverException as e:
-        error_msg = f"WebDriver error: {e}"
-        print(error_msg)
-
-        # Check if Chrome is installed
+        print(f"WebDriver error: {e}")
         print("\nTroubleshooting:")
         print("1. Make sure Chrome browser is installed")
         print("2. Install ChromeDriver: brew install --cask chromedriver")
         print("3. Or use: pip install webdriver-manager")
-
-        raise ValueError(error_msg)
+        raise ValueError(f"WebDriver error: {e}")
 
     except Exception as e:
         print(f"Unexpected error: {e}")

@@ -14,7 +14,6 @@ additional fields: (Optional)
 """
 
 import os
-from datetime import datetime
 import requests
 import pandas as pd
 
@@ -126,7 +125,7 @@ def get_columns(df, *args) -> pd.DataFrame:
     return df[valid_cols]
 
 
-def reorder_df(df):
+def reorder_df_football_data(df):
     # Get specified columns and reorder them
     df_processed = get_columns(
         df,
