@@ -9,7 +9,7 @@ requests-based fallback with a clear warning about bot protection.
 import os
 import pandas as pd
 import time
-import random
+from secrets import SystemRandom
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
@@ -255,7 +255,9 @@ def download_with_selenium(url):
         driver.get(url)
 
         _wait_out_challenge(driver, timeout=30)
-        time.sleep(random.uniform(2, 5))  # small buffer to ensure full render
+
+        # Using SystemRandom() is a secure random number generator.  Itis a best practice for security-sensitive applications.
+        time.sleep(SystemRandom().uniform(2, 5))  # small buffer to ensure full render
 
         html_content = _get_html_or_raise(driver)
         print("Successfully retrieved page.")

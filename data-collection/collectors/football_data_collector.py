@@ -77,7 +77,7 @@ def download_csv(url: str, filename: str = "football-data_data.csv"):
     filepath = os.path.join(get_data_raw_folder(), filename)
 
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=30)
         response.raise_for_status()  # Raise HTTPError for bad responses
     except requests.exceptions.RequestException as e:
         raise ValueError(f"Failed to fetch data from {url}. Error: {e}")
