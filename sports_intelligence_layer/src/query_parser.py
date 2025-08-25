@@ -2,24 +2,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 from enum import Enum
 import re
-import os
-import sys
 from datetime import datetime, timedelta
-
-# project_root = os.path.join("../..", os.path.dirname(__file__))
-current_dir = os.path.dirname(__file__)
-print("current_dir:", current_dir)
-
-# Add the project root to Python path
-root_path = os.path.abspath(os.path.join(current_dir, "../.."))
-sys.path.insert(0, root_path)
-
-
-from sports_intelligence_layer.config.soccer_entities import (
-    PRIORITY_PLAYERS,
-    PRIORITY_TEAMS,
-    STATISTICS_KEYWORDS,
-)
 
 
 class EntityType(Enum):
@@ -73,44 +56,36 @@ class ParsedSoccerQuery:
 
 class SoccerQueryParser:
     def __init__(self):
-        """
-        Players, Teams, Stats (Nouns):
-        - These are entities or domain knowledge. The list of these is long and will change often. Putting them in a config file (soccer_entities.py) is the perfect strategy. It's our "knowledge base."
-
-        Time, Comparisons (Grammar/Structure):
-        - These are more about the structure and grammar of a question. "This season," "last 5 games," "compared to" are linguistic patterns. Keeping them as regex inside the parser is perfectly acceptable because they define how a user asks a question, not what they are asking about. They are less likely to change frequently.
-
-        Why we design this way:
-        (a) External Config (soccer_entities.py):
-            - Holds the "what" (the nouns of our domain).
-        (b) Internal Parser Logic (query_parser.py):
-            - Holds the "how" (the grammar for parsing questions).
-        """
-
         self.player_patterns = [
-            # r"\b(?:player|striker|midfielder|defender|goalkeeper)\s+(\w+(?:\s+\w+)?)",
-            # r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:scored|assisted|played)",
-            # r"(?:How many|What\'s)\s+.*?(\w+(?:\s+\w+)?)\s+(?:goals|assists|minutes)",
+            # Matches position keywords followed by a name, ex."striker Haaland" → captures "Haaland"
+            r"\b(?:player|striker|midfielder|defender|goalkeeper)\s+(\w+(?:\s+\w+)?)",
+            # Matches capitalized names followed by action verbs, ex. "Salah scored" → captures "Salah"
+            # "?:" non-capturing group. Groups for logic (like alternation or quantifiers) but doesn't save the match.
+            r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:scored|assisted|played)",
+            # Matches question patterns with stats, ex. "How many goals has Messi scored?" → captures "Messi"
+            r"(?:How many|What\'s)\s+.*?\b(?:has|have)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:scored|goals|assists|minutes)",
         ]
-        print("in __init__(), self.player_patterns:", self.player_patterns)
 
-        # self.team_patterns = [
-        #     r"\b(Arsenal|Barcelona|Real Madrid|Manchester United|Liverpool|Chelsea|Bayern Munich|PSG|Inter Milan|AC Milan|Juventus|Manchester City|Tottenham|Atletico Madrid|Borussia Dortmund)\b",
-        #     r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:vs|against|home|away)",
-        #     r"(?:What\'s|How\'s)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:record|performance)",
-        # ]
+        self.team_patterns = [
+            # Uses word boundaries (\b) to match exact team names, ex.Arsenal scored 3 goals" → captures "Arsenal"
+            r"\b(Arsenal|Barcelona|Real Madrid|Manchester United|Liverpool|Chelsea|Bayern Munich|PSG|Inter Milan|AC Milan|Juventus|Manchester City|Tottenham|Atletico Madrid|Borussia Dortmund)\b",
+            # Matches capitalized names followed by match context keywords, ex. "Liverpool vs Arsenal" → captures "Liverpool"
+            r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:vs|against|home|away)",
+            # Matches question patterns with team names, ex. "What's Arsenal's home record?" → captures "Arsenal"
+            r"(?:What\'s|How\'s)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:record|performance)",
+        ]
 
-        # self.stat_patterns = {
-        #     "goals": r"\b(?:goals?|scored|scoring|goalscorer)\b",
-        #     "assists": r"\b(?:assists?|assisted|assisting)\b",
-        #     "clean_sheets": r"\b(?:clean sheets?|shutouts?)\b",
-        #     "pass_completion": r"\b(?:pass completion|passing accuracy|pass rate)\b",
-        #     "possession": r"\b(?:possession|ball possession)\b",
-        #     "shots": r"\b(?:shots?|shooting)\b",
-        #     "tackles": r"\b(?:tackles?|tackling)\b",
-        #     "saves": r"\b(?:saves?|saving)\b",
-        #     "minutes": r"\b(?:minutes?|mins?|playing time)\b",
-        # }
+        self.stat_patterns = {
+            "goals": r"\b(?:goals?|scored|scoring|goalscorer)\b",
+            "assists": r"\b(?:assists?|assisted|assisting)\b",
+            "clean_sheets": r"\b(?:clean sheets?|shutouts?)\b",
+            "pass_completion": r"\b(?:pass completion|passing accuracy|pass rate)\b",
+            "possession": r"\b(?:possession|ball possession)\b",
+            "shots": r"\b(?:shots?|shooting)\b",
+            "tackles": r"\b(?:tackles?|tackling)\b",
+            "saves": r"\b(?:saves?|saving)\b",
+            "minutes": r"\b(?:minutes?|mins?|playing time)\b",
+        }
 
         self.time_patterns = {
             TimeContext.THIS_SEASON: r"\b(?:this season|current season|2024-25|2024/25)\b",
@@ -130,7 +105,6 @@ class SoccerQueryParser:
 
     def parse_query(self, query: str) -> ParsedSoccerQuery:
         """Parse a natural language soccer query into structured components."""
-        print("in parse_query()")
         entities = self._extract_entities(query)
         time_context = self._extract_time_context(query)
         comparison_type = self._extract_comparison_type(query)
@@ -152,54 +126,54 @@ class SoccerQueryParser:
         )
 
     def _extract_entities(self, query: str) -> List[SoccerEntity]:
-        """Extract player and team entities using the knowledge base."""
+        """Extract player, team, and other entities from the query."""
         entities = []
 
-        # Pad with spaces for whole word matching
-        query_lower = f" {query.lower()} "
-
-        # --- Team Recognition ---
-        for official_name, data in PRIORITY_TEAMS.items():
-            # Create a list of all possible names for the team
-            names_to_check = [official_name] + data.get("aliases", [])
-            print("official_name:", official_name)
-            print("data:", data)
-            print("names_to_check:", names_to_check)
-
-            for name in names_to_check:
-                if f" {name} " in query_lower:
-                    # Avoid adding the same team twice from an alias
-                    if not any(e.name == official_name for e in entities):
-                        entities.append(
-                            SoccerEntity(
-                                name=official_name,
-                                entity_type=EntityType.TEAM,
-                                confidence=0.95,
-                            )
+        # Extract players
+        for pattern in self.player_patterns:
+            """
+            re.finditer():
+            - finding all non-overlapping matches of a regex pattern.
+            - Unlike re.findall(), which returns a list of strings, re.finditer() returns an iterator yielding Match objects.
+            - A march object provides methods to access details about the match.
+            """
+            matches = re.finditer(pattern, query, re.IGNORECASE)
+            for match in matches:
+                print(f"query_parser.py::_extract_entities, match: {match.group()}")
+                # match.group(0): Return the entire match string
+                # match.group(1): Return the 1st string of the match
+                player_name = match.group(1)
+                print(f"query_parser.py::_extract_entities, player_name: {player_name}")
+                if self._is_likely_player(player_name):
+                    entities.append(
+                        SoccerEntity(
+                            name=player_name,
+                            entity_type=EntityType.PLAYER,
+                            confidence=0.85,
                         )
-                        break  # Move to the next team once found
+                    )
 
-        # --- Player Recognition ---
-        for official_name, data in PRIORITY_PLAYERS.items():
-            names_to_check = [official_name] + data.get("aliases", [])
-            for name in names_to_check:
-                if f" {name} " in query_lower:
-                    if not any(e.name == official_name for e in entities):
-                        entities.append(
-                            SoccerEntity(
-                                name=official_name,
-                                entity_type=EntityType.PLAYER,
-                                confidence=0.95,
-                            )
-                        )
-                        break  # Move to next player
+        # Extract teams
+        for pattern in self.team_patterns:
+            matches = re.finditer(pattern, query, re.IGNORECASE)
+            for match in matches:
+                print(f"query_parser.py::_extract_entities, match: {match.group()}")
+                team_name = match.group(1) if match.groups() else match.group(0)
+                print(f"query_parser.py::_extract_entities, team_name: {team_name}")
+                entities.append(
+                    SoccerEntity(
+                        name=team_name, entity_type=EntityType.TEAM, confidence=0.9
+                    )
+                )
 
         return entities
 
     def _extract_time_context(self, query: str) -> TimeContext:
         """Determine the time context of the query."""
         for time_context, pattern in self.time_patterns.items():
+            print(f"""time_context: {time_context}, pattern: {pattern}""")
             if re.search(pattern, query, re.IGNORECASE):
+                print(f"""time_context found: {time_context}""")
                 return time_context
 
         # Default to current season if no time context found
@@ -214,10 +188,9 @@ class SoccerQueryParser:
 
     def _extract_statistic(self, query: str) -> Optional[str]:
         """Extract the main statistic being requested."""
-        for stat_name, keywords in STATISTICS_KEYWORDS.items():
-            for keyword in keywords:
-                if re.search(rf"\b(?:{keyword})\b", query, re.IGNORECASE):
-                    return stat_name
+        for stat_name, pattern in self.stat_patterns.items():
+            if re.search(pattern, query, re.IGNORECASE):
+                return stat_name
         return None
 
     def _extract_filters(self, query: str) -> Dict[str, Any]:
@@ -284,14 +257,14 @@ class SoccerQueryParser:
 # Example usage and testing
 if __name__ == "__main__":
     parser = SoccerQueryParser()
-    print(f"parser: {parser}")
+
     test_queries = [
         "How many goals has Haaland scored this season?",
-        "What's Arsenal's home record in the Premier League?",
-        "How does Messi's pass completion compare to his career average?",
-        "When did Barcelona last beat Real Madrid in El Clasico?",
-        "What's Liverpool's clean sheet record against the big six?",
-        "How significant is Salah's performance against City?",
+        # "What's Arsenal's home record in the Premier League?",
+        # "How does Messi's pass completion compare to his career average?",
+        # "When did Barcelona last beat Real Madrid in El Clasico?",
+        # "What's Liverpool's clean sheet record against the big six?",
+        # "How significant is Salah's performance against City?"
     ]
 
     for query in test_queries:
