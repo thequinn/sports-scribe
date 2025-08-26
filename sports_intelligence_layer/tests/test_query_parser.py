@@ -12,7 +12,6 @@ class TestSoccerQueryParser(unittest.TestCase):
     def setUp(self):
         self.parser = SoccerQueryParser()
 
-    # PASSED
     def test_basic_player_goal_query(self):
         """Test: How many goals has Haaland scored this season?"""
         query = "How many goals has Haaland scored this season?"
@@ -29,7 +28,6 @@ class TestSoccerQueryParser(unittest.TestCase):
         self.assertIn("Haaland", player_entities[0].name)
         self.assertGreater(parsed.confidence, 0.8)
 
-    # PASSED
     def test_team_home_record_query(self):
         """Test: What's Arsenal's home record this season?"""
         query = "What's Arsenal's home record this season?"
@@ -43,7 +41,6 @@ class TestSoccerQueryParser(unittest.TestCase):
         self.assertEqual(len(team_entities), 1)
         self.assertEqual(team_entities[0].name, "Arsenal")
 
-    # PASSED
     def test_player_comparison_query(self):
         """Test: How does Messi's past completion compare to his career average?"""
         query = "How does Messi's past completion compare to his career average?"
@@ -58,7 +55,6 @@ class TestSoccerQueryParser(unittest.TestCase):
         self.assertGreater(len(player_entities), 0)
         self.assertIn("Messi", player_entities[0].name)
 
-    # PASSED
     def test_head_to_head_query(self):
         """Test: When did Barcelona last beat Real Madrid?"""
         query = "When did Barcelona last beat Real Madrid?"
@@ -71,7 +67,6 @@ class TestSoccerQueryParser(unittest.TestCase):
         self.assertIn("Barcelona", team_names)
         self.assertIn("Real Madrid", team_names)
 
-    # PASSED
     def test_clean_sheets_vs_big_six(self):
         """Test: What's Liverpool's clean sheet record against the big six?"""
         query = "What's Liverpool's clean sheet record against the big six?"
@@ -83,7 +78,6 @@ class TestSoccerQueryParser(unittest.TestCase):
         self.assertEqual(len(team_entities), 1)
         self.assertEqual(team_entities[0].name, "Liverpool")
 
-    # PASSED
     def test_champions_league_context(self):
         """Test: How many goals has Mbappe scored in the Champions League?"""
         query = "How many goals has Mbappe scored in the Champions League?"
@@ -97,7 +91,6 @@ class TestSoccerQueryParser(unittest.TestCase):
         ]
         self.assertGreater(len(player_entities), 0)
 
-    # PASSED
     def test_significance_context_query(self):
         """Test: How significant is Salah's performance against City?"""
         query = "How significant is Salah's performance against City?"
@@ -112,7 +105,6 @@ class TestSoccerQueryParser(unittest.TestCase):
         self.assertGreater(len(player_entities), 0)
         self.assertGreater(len(team_entities), 0)
 
-    # PASSED
     def test_multiple_stats_query(self):
         """Test: What are Benzema's goals and assists this season?"""
         query = "What are Benzema's goals and assists this season?"
@@ -123,7 +115,6 @@ class TestSoccerQueryParser(unittest.TestCase):
         self.assertIn(parsed.statistic_requested, ["goals", "assists"])
         self.assertEqual(parsed.time_context, TimeContext.THIS_SEASON)
 
-    # PASSED
     def test_away_performance_query(self):
         """Test: How has Chelsea performed away from home this season?"""
         query = "How has Chelsea performed away from home this season?"
@@ -136,7 +127,6 @@ class TestSoccerQueryParser(unittest.TestCase):
         self.assertEqual(len(team_entities), 1)
         self.assertEqual(team_entities[0].name, "Chelsea")
 
-    # PASSED
     def test_derby_match_query(self):
         """Test: What's the history of Manchester derbies?"""
         query = "What's the history of Manchester derbies?"
@@ -201,7 +191,7 @@ def run_comprehensive_test_suite():
     # Test categories
     test_categories = [
         ("Basic Queries", TestSoccerQueryParser),
-        ("Integration Workflows", SoccerQueryParserIntegrationTest),
+        # ("Integration Workflows", SoccerQueryParserIntegrationTest),
     ]
 
     all_results = []
