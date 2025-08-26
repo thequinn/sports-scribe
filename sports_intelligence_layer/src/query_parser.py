@@ -159,9 +159,9 @@ class SoccerQueryParser:
         for pattern in self.team_patterns:
             matches = re.finditer(pattern, query, re.IGNORECASE)
             for match in matches:
-                print(f"query_parser.py::_extract_entities, match: {match.group()}")
+                # print(f"query_parser.py::_extract_entities, match: {match.group()}")
                 team_name = match.group(1) if match.groups() else match.group(0)
-                print(f"query_parser.py::_extract_entities, team_name: {team_name}")
+                # print(f"query_parser.py::_extract_entities, team_name: {team_name}")
                 if team_name.lower() not in seen_names:
                     entities.append(
                         SoccerEntity(
@@ -180,11 +180,11 @@ class SoccerQueryParser:
             """
             matches = re.finditer(pattern, query, re.IGNORECASE)
             for match in matches:
-                print(f"query_parser.py::_extract_entities, match: {match.group()}")
+                # print(f"query_parser.py::_extract_entities, match: {match.group()}")
                 # match.group(0): Return the entire match string
                 # match.group(1): Return the 1st string of the match
                 player_name = match.group(1)
-                print(f"query_parser.py::_extract_entities, player_name: {player_name}")
+                # print(f"query_parser.py::_extract_entities, player_name: {player_name}")
 
                 # Extract actual player name, removing prefixes like "is", "about", etc.
                 actual_player_name = self._extract_actual_player_name(player_name)
@@ -210,9 +210,9 @@ class SoccerQueryParser:
     def _extract_time_context(self, query: str) -> TimeContext:
         """Determine the time context of the query."""
         for time_context, pattern in self.time_patterns.items():
-            print(f"""time_context: {time_context}, pattern: {pattern}""")
+            # print(f"""time_context: {time_context}, pattern: {pattern}""")
             if re.search(pattern, query, re.IGNORECASE):
-                print(f"""time_context found: {time_context}""")
+                # print(f"""time_context found: {time_context}""")
                 return time_context
 
         # Default to current season if no time context found
