@@ -1,3 +1,6 @@
+from typing import Any, Dict, List
+from query_parser import SoccerQueryParser, ParsedSoccerQuery, SoccerEntity, EntityType
+
 # Soccer-Specific Enhancements for Query Parser
 
 SOCCER_ENTITIES = {
@@ -122,128 +125,121 @@ OPPONENT_CATEGORIES = {
 }
 
 
-def enhance_soccer_parser():
-    """
-    Enhanced soccer parser with comprehensive entity recognition
-    """
+class EnhancedSoccerQueryParser(SoccerQueryParser):
+    def __init__(self):
+        super().__init__()
+        self.soccer_entities = SOCCER_ENTITIES
+        self.soccer_stats = SOCCER_STATISTICS
+        self.soccer_contexts = SOCCER_CONTEXTS
+        self.opponent_categories = OPPONENT_CATEGORIES
 
-    class EnhancedSoccerQueryParser(SoccerQueryParser):
-        def __init__(self):
-            super().__init__()
-            self.soccer_entities = SOCCER_ENTITIES
-            self.soccer_stats = SOCCER_STATISTICS
-            self.soccer_contexts = SOCCER_CONTEXTS
-            self.opponent_categories = OPPONENT_CATEGORIES
+    def _extract_entities_enhanced(self, query: str) -> List[SoccerEntity]:
+        """Enhanced entity extraction with soccer-specific knowledge"""
+        entities = []
+        query_lower = query.lower()
 
-        def _extract_entities_enhanced(self, query: str) -> List[SoccerEntity]:
-            """Enhanced entity extraction with soccer-specific knowledge"""
-            entities = []
-            query_lower = query.lower()
-
-            # Enhanced player recognition
-            for player_name, aliases in self.soccer_entities["players"].items():
-                if any(
-                    alias.lower() in query_lower for alias in [player_name] + aliases
-                ):
-                    print(f"Player name: {player_name}, alias: {aliases}")
-                    entities.append(
-                        SoccerEntity(
-                            name=player_name.title(),
-                            entity_type=EntityType.PLAYER,
-                            aliases=aliases,
-                            confidence=0.95,
-                        )
+        # Enhanced player recognition
+        for player_name, aliases in self.soccer_entities["players"].items():
+            if any(
+                alias.lower() in query_lower for alias in [player_name] + aliases
+            ):
+                print(f"Player name: {player_name}, alias: {aliases}")
+                entities.append(
+                    SoccerEntity(
+                        name=player_name.title(),
+                        entity_type=EntityType.PLAYER,
+                        aliases=aliases,
+                        confidence=0.95,
                     )
+                )
 
-            # Enhanced team recognition
-            for team_name, aliases in self.soccer_entities["teams"].items():
-                if any(alias.lower() in query_lower for alias in [team_name] + aliases):
-                    entities.append(
-                        SoccerEntity(
-                            name=team_name.title(),
-                            entity_type=EntityType.TEAM,
-                            aliases=aliases,
-                            confidence=0.95,
-                        )
+        # Enhanced team recognition
+        for team_name, aliases in self.soccer_entities["teams"].items():
+            if any(alias.lower() in query_lower for alias in [team_name] + aliases):
+                entities.append(
+                    SoccerEntity(
+                        name=team_name.title(),
+                        entity_type=EntityType.TEAM,
+                        aliases=aliases,
+                        confidence=0.95,
                     )
-
-            # Competition recognition
-            for comp_name, aliases in self.soccer_entities["competitions"].items():
-                if any(alias.lower() in query_lower for alias in [comp_name] + aliases):
-                    entities.append(
-                        SoccerEntity(
-                            name=comp_name.title(),
-                            entity_type=EntityType.COMPETITION,
-                            aliases=aliases,
-                            confidence=0.9,
-                        )
+                )
+        for comp_name, aliases in self.soccer_entities["competitions"].items():
+            if any(alias.lower() in query_lower for alias in [comp_name] + aliases):
+                entities.append(
+                    SoccerEntity(
+                        name=comp_name.title(),
+                        entity_type=EntityType.COMPETITION,
+                        aliases=aliases,
+                        confidence=0.9,
                     )
+                )
 
-            return entities
+        return entities
 
-        def _extract_soccer_context(self, query: str) -> Dict[str, Any]:
-            """Extract soccer-specific contextual information"""
-            context = {}
-            query_lower = query.lower()
+    def _extract_soccer_context(self, query: str) -> Dict[str, Any]:
+        """Extract soccer-specific contextual information"""
+        context = {}
+        query_lower = query.lower()
 
-            # Match context
-            for context_type, keywords in self.soccer_contexts.items():
-                if any(keyword in query_lower for keyword in keywords):
-                    context["match_context"] = context_type
-                    break
+        # Match context
+        for context_type, keywords in self.soccer_contexts.items():
+            if any(keyword in query_lower for keyword in keywords):
+                context["match_context"] = context_type
+                break
 
-            # Opponent category
-            for category, teams in self.opponent_categories.items():
-                if any(team.lower() in query_lower for team in teams):
-                    context["opponent_category"] = category
-                    break
+        # Opponent category
+        for category, teams in self.opponent_categories.items():
+            if any(team.lower() in query_lower for team in teams):
+                context["opponent_category"] = category
+                break
 
-            # Tactical context
-            tactical_keywords = {
-                "attacking": ["attacking", "offensive", "going forward", "in attack"],
-                "defensive": ["defending", "defensive", "at the back", "defensively"],
-                "midfield": ["midfield", "middle of the park", "center", "playmaking"],
-                "set_pieces": [
-                    "corner",
-                    "free kick",
-                    "penalty",
-                    "set piece",
-                    "dead ball",
-                ],
-            }
+        # Tactical context
+        tactical_keywords = {
+            "attacking": ["attacking", "offensive", "going forward", "in attack"],
+            "defensive": ["defending", "defensive", "at the back", "defensively"],
+            "midfield": ["midfield", "middle of the park", "center", "playmaking"],
+            "set_pieces": [
+                "corner",
+                "free kick",
+                "penalty",
+                "set piece",
+                "dead ball",
+            ],
+        }
 
-            for tactical_type, keywords in tactical_keywords.items():
-                if any(keyword in query_lower for keyword in keywords):
-                    context["tactical_focus"] = tactical_type
-                    break
+        for tactical_type, keywords in tactical_keywords.items():
+            if any(keyword in query_lower for keyword in keywords):
+                context["tactical_focus"] = tactical_type
+                break
 
-            return context
+        return context
 
-        def parse_query_enhanced(self, query: str) -> ParsedSoccerQuery:
-            """Enhanced parsing with soccer-specific improvements"""
-            # Use enhanced entity extraction
-            entities = self._extract_entities_enhanced(query)
+    def parse_query_enhanced(self, query: str) -> ParsedSoccerQuery:
+        """Enhanced parsing with soccer-specific improvements"""
+        # Use enhanced entity extraction
+        entities = self._extract_entities_enhanced(query)
 
-            # Get standard parsing results
-            base_parsed = self.parse_query(query)
+        # Get standard parsing results
+        base_parsed = self.parse_query(query)
 
-            # Add enhanced soccer context
-            soccer_context = self._extract_soccer_context(query)
-            enhanced_filters = {**base_parsed.filters, **soccer_context}
+        # Add enhanced soccer context
+        soccer_context = self._extract_soccer_context(query)
+        enhanced_filters = {**base_parsed.filters, **soccer_context}
 
-            # Create enhanced parsed query
-            return ParsedSoccerQuery(
-                original_query=query,
-                entities=entities if entities else base_parsed.entities,
-                time_context=base_parsed.time_context,
-                comparison_type=base_parsed.comparison_type,
-                filters=enhanced_filters,
-                statistic_requested=base_parsed.statistic_requested,
-                confidence=min(
-                    base_parsed.confidence + 0.1, 1.0
-                ),  # Boost confidence slightly
-                query_intent=base_parsed.query_intent,
-            )
+        # Create enhanced parsed query
+        return ParsedSoccerQuery(
+            original_query=query,
+            entities=entities if entities else base_parsed.entities,
+            time_context=base_parsed.time_context,
+            comparison_type=base_parsed.comparison_type,
+            filters=enhanced_filters,
+            statistic_requested=base_parsed.statistic_requested,
+            confidence=min(
+                base_parsed.confidence + 0.1, 1.0
+            ),  # Boost confidence slightly
+            query_intent=base_parsed.query_intent,
+        )
 
 
 # Real-world query examples for testing
