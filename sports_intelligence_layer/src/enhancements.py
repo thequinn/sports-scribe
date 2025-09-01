@@ -1,5 +1,25 @@
+import os
 from typing import Any, Dict, List
-from query_parser import SoccerQueryParser, ParsedSoccerQuery, SoccerEntity, EntityType
+
+from query_parser import (
+    SoccerQueryParser,
+    ParsedSoccerQuery,
+    SoccerEntity,
+    EntityType,
+)
+from ..database.database import (
+    SoccerDatabaseQueryBuilder,
+    QueryResult,
+)
+
+from supabase import create_client, Client
+
+
+# Initialize Supabase client
+url: str = os.environ.get("SUPABASE_URL")
+key: str = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+supabase_client: Client = create_client(url, key)
+
 
 # Soccer-Specific Enhancements for Query Parser
 
@@ -140,9 +160,7 @@ class EnhancedSoccerQueryParser(SoccerQueryParser):
 
         # Enhanced player recognition
         for player_name, aliases in self.soccer_entities["players"].items():
-            if any(
-                alias.lower() in query_lower for alias in [player_name] + aliases
-            ):
+            if any(alias.lower() in query_lower for alias in [player_name] + aliases):
                 print(f"Player name: {player_name}, alias: {aliases}")
                 entities.append(
                     SoccerEntity(
@@ -432,7 +450,7 @@ async def example_agent_integration():
 
     # Initialize the soccer intelligence interface (pseudo-code)
     parser = EnhancedSoccerQueryParser()
-    # query_builder = SoccerDatabaseQueryBuilder(supabase_client)
+    query_builder = SoccerDatabaseQueryBuilder(supabase_client)
     # soccer_intel = SoccerIntelligenceInterface(parser, query_builder, supabase_client)
 
     # Example Research Agent workflow
